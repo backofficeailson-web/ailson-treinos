@@ -117,133 +117,106 @@ def salvar_foto(cliente_id, data, frente, costas, perfil):
     conn.commit()
     conn.close()
 
-EXERCICIOS = {
-    "Agachamento": ["Agachamento Livre (barra alta)", "Agachamento Frontal", "Agachamento Pausado", "Box Squat"],
-    "Supino": ["Supino Reto", "Supino Fechado", "Supino Pausado", "Board Press"],
-    "Terra": ["Levantamento Terra Tradicional", "Terra Sumô", "Terra Déficit", "Terra Pausado"],
-    "Desenvolvimento": ["Desenvolvimento Militar", "Desenvolvimento com Halteres"],
-    "Remada": ["Remada Curvada", "Remada Nórdica", "Remada Alta"],
-    "Acessórios": ["Stiff", "Good Morning", "Avanço com Barra", "Afundo"],
-    "Braços": ["Rosca Direta", "Tríceps Testa", "Tríceps Corda (Cross)"],
-    "Torre Única": ["Puxada Alta", "Crucifixo Unilateral", "Remada Baixa", "Rosca Polia"],
-    "Barra Fixa / Paralela": ["Barra Fixa com Peso", "Dips (Paralela)"],
-    "Pegada": ["Esmagamento (Gripper)", "Pinça (Anilhas)", "Sustentação (Barra)"]
-}
-
-EQUIPAMENTOS = ["Correntes", "Elásticos", "Caixas"]
-
 def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
-    """
-    Gera periodização ondulatória organizada por semanas.
-    Retorna um dicionário onde cada chave é 'Semana X' e o valor é um DataFrame.
-    """
     objetivo = cliente['objetivo']
     agach = cliente['agachamento_1rm']
     sup = cliente['supino_1rm']
     terra = cliente['terra_1rm']
     nivel_str = cliente['nivel']
     
-    # Extrai o número do nível (ex: "Intermediário (Nível 3)" -> 3)
     try:
         nivel_num = int(nivel_str.split('Nível ')[1].split(')')[0])
     except:
         nivel_num = 3
     
-    # Ajusta volume baseado no nível
     fator_volume = {1: 0.7, 2: 0.85, 3: 1.0, 4: 1.15, 5: 1.3, 6: 1.5}.get(nivel_num, 1.0)
     
-    # Periodização ondulatória semanal
     if objetivo == "Hipertrofia":
         fases = [
-            {'foco': 'Resistência Muscular', 'series_base': 3, 'rep_range': '12-15', 'intensidade': 0.60, 'descanso': '45-60s'},
+            {'foco': 'Resistencia Muscular', 'series_base': 3, 'rep_range': '12-15', 'intensidade': 0.60, 'descanso': '45-60s'},
             {'foco': 'Hipertrofia Tensional', 'series_base': 4, 'rep_range': '8-10', 'intensidade': 0.70, 'descanso': '60-90s'},
-            {'foco': 'Hipertrofia Metabólica', 'series_base': 4, 'rep_range': '10-12', 'intensidade': 0.65, 'descanso': '45-60s'},
+            {'foco': 'Hipertrofia Metabolica', 'series_base': 4, 'rep_range': '10-12', 'intensidade': 0.65, 'descanso': '45-60s'},
             {'foco': 'Choque/Densidade', 'series_base': 5, 'rep_range': '6-8', 'intensidade': 0.75, 'descanso': '90s'}
         ]
     elif objetivo == "Força Máxima":
         fases = [
-            {'foco': 'Preparação/Volume', 'series_base': 4, 'rep_range': '6-8', 'intensidade': 0.75, 'descanso': '2-3min'},
-            {'foco': 'Força Pura', 'series_base': 5, 'rep_range': '4-5', 'intensidade': 0.85, 'descanso': '3-4min'},
-            {'foco': 'Força Máxima', 'series_base': 6, 'rep_range': '2-3', 'intensidade': 0.92, 'descanso': '4-5min'},
-            {'foco': 'Descarga Técnica', 'series_base': 3, 'rep_range': '3-4', 'intensidade': 0.80, 'descanso': '2-3min'}
+            {'foco': 'Preparacao/Volume', 'series_base': 4, 'rep_range': '6-8', 'intensidade': 0.75, 'descanso': '2-3min'},
+            {'foco': 'Forca Pura', 'series_base': 5, 'rep_range': '4-5', 'intensidade': 0.85, 'descanso': '3-4min'},
+            {'foco': 'Forca Maxima', 'series_base': 6, 'rep_range': '2-3', 'intensidade': 0.92, 'descanso': '4-5min'},
+            {'foco': 'Descarga Tecnica', 'series_base': 3, 'rep_range': '3-4', 'intensidade': 0.80, 'descanso': '2-3min'}
         ]
-    else:  # Potência
+    else:
         fases = [
-            {'foco': 'Força-Velocidade', 'series_base': 5, 'rep_range': '3-5', 'intensidade': 0.50, 'descanso': '2min'},
-            {'foco': 'Velocidade-Força', 'series_base': 6, 'rep_range': '2-3', 'intensidade': 0.60, 'descanso': '2-3min'},
-            {'foco': 'Pico de Potência', 'series_base': 4, 'rep_range': '3-4', 'intensidade': 0.55, 'descanso': '2min'},
-            {'foco': 'Transferência', 'series_base': 5, 'rep_range': '5-6', 'intensidade': 0.45, 'descanso': '90s'}
+            {'foco': 'Forca-Velocidade', 'series_base': 5, 'rep_range': '3-5', 'intensidade': 0.50, 'descanso': '2min'},
+            {'foco': 'Velocidade-Forca', 'series_base': 6, 'rep_range': '2-3', 'intensidade': 0.60, 'descanso': '2-3min'},
+            {'foco': 'Pico de Potencia', 'series_base': 4, 'rep_range': '3-4', 'intensidade': 0.55, 'descanso': '2min'},
+            {'foco': 'Transferencia', 'series_base': 5, 'rep_range': '5-6', 'intensidade': 0.45, 'descanso': '90s'}
         ]
 
-    # Estrutura de cada dia de treino (Push/Pull/Legs + Variações)
     dias_treino = {
-        1: {  # Dia 1 - Lower Body Focus (Agachamento)
+        1: {
             'nome': 'Dia 1 - Membros Inferiores (Foco Agachamento)',
             'exercicios': [
                 {'nome': 'Agachamento Livre (barra alta)', 'tipo': 'Principal', 'base': 'agach', 'fator': 1.0},
-                {'nome': 'Agachamento Frontal', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.80},
-                {'nome': 'Avanço com Barra', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.50},
-                {'nome': 'Stiff', 'tipo': 'Acessório', 'base': 'terra', 'fator': 0.60},
-                {'nome': 'Good Morning', 'tipo': 'Acessório', 'base': 'terra', 'fator': 0.45},
+                {'nome': 'Agachamento Frontal', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.80},
+                {'nome': 'Avanco com Barra', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.50},
+                {'nome': 'Stiff', 'tipo': 'Acessorio', 'base': 'terra', 'fator': 0.60},
+                {'nome': 'Good Morning', 'tipo': 'Acessorio', 'base': 'terra', 'fator': 0.45},
                 {'nome': 'Esmagamento (Gripper)', 'tipo': 'Finalizador', 'base': 'pegada', 'fator': 0.0},
             ]
         },
-        2: {  # Dia 2 - Upper Body Push Focus (Supino)
+        2: {
             'nome': 'Dia 2 - Membros Superiores (Foco Supino)',
             'exercicios': [
                 {'nome': 'Supino Reto', 'tipo': 'Principal', 'base': 'sup', 'fator': 1.0},
-                {'nome': 'Supino Fechado', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.80},
-                {'nome': 'Desenvolvimento Militar', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.55},
-                {'nome': 'Tríceps Testa', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.30},
-                {'nome': 'Tríceps Corda (Cross)', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.20},
-                {'nome': 'Pinça (Anilhas)', 'tipo': 'Finalizador', 'base': 'pegada', 'fator': 0.0},
+                {'nome': 'Supino Fechado', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.80},
+                {'nome': 'Desenvolvimento Militar', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.55},
+                {'nome': 'Triceps Testa', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.30},
+                {'nome': 'Triceps Corda (Cross)', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.20},
+                {'nome': 'Pinca (Anilhas)', 'tipo': 'Finalizador', 'base': 'pegada', 'fator': 0.0},
             ]
         },
-        3: {  # Dia 3 - Pull Focus (Terra)
+        3: {
             'nome': 'Dia 3 - Dorsais/Posterior (Foco Terra)',
             'exercicios': [
                 {'nome': 'Levantamento Terra Tradicional', 'tipo': 'Principal', 'base': 'terra', 'fator': 1.0},
-                {'nome': 'Terra Sumô', 'tipo': 'Acessório', 'base': 'terra', 'fator': 0.85},
-                {'nome': 'Remada Curvada', 'tipo': 'Acessório', 'base': 'terra', 'fator': 0.50},
-                {'nome': 'Barra Fixa com Peso', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.30},
-                {'nome': 'Rosca Direta', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.15},
-                {'nome': 'Sustentação (Barra)', 'tipo': 'Finalizador', 'base': 'pegada', 'fator': 0.0},
+                {'nome': 'Terra Sumo', 'tipo': 'Acessorio', 'base': 'terra', 'fator': 0.85},
+                {'nome': 'Remada Curvada', 'tipo': 'Acessorio', 'base': 'terra', 'fator': 0.50},
+                {'nome': 'Barra Fixa com Peso', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.30},
+                {'nome': 'Rosca Direta', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.15},
+                {'nome': 'Sustentacao (Barra)', 'tipo': 'Finalizador', 'base': 'pegada', 'fator': 0.0},
             ]
         }
     }
 
-    # Dias extras para frequências maiores
     if frequencia >= 4:
         dias_treino[4] = {
-            'nome': 'Dia 4 - Variação Inferior (Terra/Agachamento)',
+            'nome': 'Dia 4 - Variacao Inferior (Terra/Agachamento)',
             'exercicios': [
-                {'nome': 'Terra Déficit', 'tipo': 'Principal', 'base': 'terra', 'fator': 0.90},
-                {'nome': 'Box Squat', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.85},
-                {'nome': 'Agachamento Pausado', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.75},
-                {'nome': 'Remada Nórdica', 'tipo': 'Acessório', 'base': 'terra', 'fator': 0.40},
-                {'nome': 'Afundo', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.45},
+                {'nome': 'Terra Deficit', 'tipo': 'Principal', 'base': 'terra', 'fator': 0.90},
+                {'nome': 'Box Squat', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.85},
+                {'nome': 'Agachamento Pausado', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.75},
+                {'nome': 'Remada Nordica', 'tipo': 'Acessorio', 'base': 'terra', 'fator': 0.40},
+                {'nome': 'Afundo', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.45},
                 {'nome': 'Dips (Paralela)', 'tipo': 'Finalizador', 'base': 'agach', 'fator': 0.25},
             ]
         }
     if frequencia == 5:
         dias_treino[5] = {
-            'nome': 'Dia 5 - Isolamento/Especialização',
+            'nome': 'Dia 5 - Isolamento/Especializacao',
             'exercicios': [
                 {'nome': 'Board Press', 'tipo': 'Principal', 'base': 'sup', 'fator': 0.85},
-                {'nome': 'Supino Pausado', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.75},
-                {'nome': 'Puxada Alta', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.30},
-                {'nome': 'Remada Baixa', 'tipo': 'Acessório', 'base': 'agach', 'fator': 0.25},
-                {'nome': 'Crucifixo Unilateral', 'tipo': 'Acessório', 'base': 'sup', 'fator': 0.15},
+                {'nome': 'Supino Pausado', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.75},
+                {'nome': 'Puxada Alta', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.30},
+                {'nome': 'Remada Baixa', 'tipo': 'Acessorio', 'base': 'agach', 'fator': 0.25},
+                {'nome': 'Crucifixo Unilateral', 'tipo': 'Acessorio', 'base': 'sup', 'fator': 0.15},
                 {'nome': 'Remada Alta', 'tipo': 'Finalizador', 'base': 'agach', 'fator': 0.20},
             ]
         }
     
-    # Aplica nível e objetivo a cada dia
     if objetivo == "Força Máxima":
-        # Reduz exercícios acessórios, foca nos principais
         for dia in dias_treino:
-            dias_treino[dia]['exercicios'] = [ex for ex in dias_treino[dia]['exercicios'] if ex['tipo'] in ['Principal', 'Acessório']][:4]
-            dias_treino[dia]['nome'] += ' (Ênfase Força)'
+            dias_treino[dia]['exercicios'] = [ex for ex in dias_treino[dia]['exercicios'] if ex['tipo'] in ['Principal', 'Acessorio']][:4]
 
     planilhas_por_semana = {}
 
@@ -252,7 +225,7 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
         fase = fases[idx_fase]
         
         ciclo = (semana - 1) // 4
-        fator_progressao = 1.0 + (ciclo * 0.025)  # +2.5% a cada ciclo
+        fator_progressao = 1.0 + (ciclo * 0.025)
         
         registros_semana = []
         
@@ -265,7 +238,6 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                 base = ex['base']
                 fator = ex['fator']
                 
-                # Determina carga base
                 if base == 'agach':
                     carga_base = agach
                 elif base == 'sup':
@@ -277,13 +249,12 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                 else:
                     carga_base = agach * 0.5
                 
-                # Calcula carga final
                 if tipo == 'Principal':
                     intensidade_final = fase['intensidade']
                     series = max(2, int(fase['series_base'] * fator_volume))
                     repeticoes = fase['rep_range']
                     descanso = fase['descanso']
-                elif tipo == 'Acessório':
+                elif tipo == 'Acessorio':
                     intensidade_final = fase['intensidade'] * 0.85
                     series = max(2, int((fase['series_base'] - 1) * fator_volume))
                     rep_range_split = fase['rep_range'].split('-')
@@ -292,7 +263,7 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                     else:
                         repeticoes = str(int(fase['rep_range']) + 2)
                     descanso = '60-90s'
-                else:  # Finalizador
+                else:
                     intensidade_final = fase['intensidade'] * 0.6
                     series = 3
                     repeticoes = '12-15'
@@ -300,36 +271,21 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                 
                 if carga_base > 0:
                     carga = round(carga_base * fator * intensidade_final * fator_progressao, 1)
-                    carga = max(carga, 1.0)  # Mínimo 1kg
+                    carga = max(carga, 1.0)
                 else:
-                    carga = 'Peso Corporal / Gripper'
+                    carga = 'Peso Corporal'
                 
                 registros_semana.append({
                     'Dia': dia,
                     'Tipo': tipo,
-                    'Exercício': nome_ex,
-                    'Séries': series,
-                    'Repetições': repeticoes,
+                    'Exercicio': nome_ex,
+                    'Series': series,
+                    'Repeticoes': repeticoes,
                     '% 1RM': f"{int(intensidade_final * 100)}%",
                     'Carga (kg)': carga if isinstance(carga, str) else f"{carga:.1f}",
                     'Descanso': descanso,
-                    'Observação': ''
+                    'Observacao': ''
                 })
-        
-        # Adiciona linha de observação no final de cada dia
-        for dia in range(1, frequencia + 1):
-            dia_info = dias_treino.get(dia, dias_treino[1])
-            registros_semana.append({
-                'Dia': dia,
-                'Tipo': '📝 NOTAS',
-                'Exercício': f'--- Fim do {dia_info["nome"]} ---',
-                'Séries': '',
-                'Repetições': '',
-                '% 1RM': '',
-                'Carga (kg)': '',
-                'Descanso': '',
-                'Observação': 'Anotar RPE, falhas, ajustes necessários'
-            })
         
         df_semana = pd.DataFrame(registros_semana)
         planilhas_por_semana[f'Semana {semana}'] = df_semana
@@ -338,22 +294,15 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
 
 
 def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
-    """
-    Cria arquivo Excel com múltiplas abas (uma por semana).
-    Retorna link HTML para download.
-    """
     output = BytesIO()
     
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         for nome_aba, df in planilhas_dict.items():
-            # Limpa o nome da aba (Excel tem limite de 31 caracteres)
             aba_nome = nome_aba.replace(' ', '_')[:31]
             df.to_excel(writer, sheet_name=aba_nome, index=False)
             
-            # Pega a worksheet para formatar
             worksheet = writer.sheets[aba_nome]
             
-            # Ajusta largura das colunas
             for i, col in enumerate(df.columns):
                 max_length = max(
                     df[col].astype(str).map(len).max(),
@@ -389,371 +338,9 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
     return href
 
 
-# ============================================
-# SUBSTITUA A SEÇÃO "Geração de Treino" POR:
-# ============================================
-elif menu == "Geração de Treino":
-    st.header("📋 Gerar Planilha de Periodização Ondulatória")
-    st.markdown("---")
-    
-    clientes_df = carregar_clientes()
-    if clientes_df.empty:
-        st.warning("⚠️ Nenhum cliente cadastrado. Vá ao menu 'Cadastro de Cliente' primeiro.")
-    else:
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            cliente_nome = st.selectbox("👤 Escolha o cliente", clientes_df['nome'])
-        
-        id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
-        cliente = carregar_cliente(id_cliente)
-        
-        if cliente is not None:
-            # Cards com informações do cliente
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("🎯 Objetivo", cliente['objetivo'])
-            col2.metric("📊 Nível", cliente['nivel'].split('(')[0].strip())
-            col3.metric("🏋️ Agachamento", f"{cliente['agachamento_1rm']} kg")
-            col4.metric("🏋️ Supino", f"{cliente['supino_1rm']} kg")
-            
-            st.markdown("---")
-            
-            # Configurações do treino
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                semanas = st.select_slider(
-                    "📅 Semanas de treino",
-                    options=[4, 8, 12, 16],
-                    value=4,
-                    help="Período total do programa"
-                )
-            with col2:
-                freq = st.radio(
-                    "📆 Dias por semana",
-                    options=[3, 4, 5],
-                    horizontal=True,
-                    help="Frequência semanal de treinos"
-                )
-            with col3:
-                st.markdown("<br>", unsafe_allow_html=True)
-                gerar = st.button("🚀 GERAR PLANILHA", use_container_width=True, type="primary")
-            
-            if gerar:
-                with st.spinner(f"Gerando periodização para {semanas} semanas..."):
-                    planilhas = gerar_planilha_ondulatoria(cliente, semanas=semanas, frequencia=freq)
-                
-                st.success(f"✅ Planilha gerada com sucesso! {len(planilhas)} semanas programadas.")
-                
-                # Download
-                st.markdown(get_table_download_link(planilhas, cliente_nome), unsafe_allow_html=True)
-                
-                st.markdown("---")
-                st.subheader("📊 Visualização Prévia")
-                
-                # Tabs para cada semana
-                tabs = st.tabs(list(planilhas.keys()))
-                
-                for i, (nome_semana, df_semana) in enumerate(planilhas.items()):
-                    with tabs[i]:
-                        st.markdown(f"### {nome_semana}")
-                        
-                        # Agrupa por dia para melhor visualização
-                        for dia in df_semana['Dia'].unique():
-                            if dia != '':
-                                df_dia = df_semana[df_semana['Dia'] == dia]
-                                with st.expander(f"📍 Dia {int(dia)}", expanded=True):
-                                    st.dataframe(
-                                        df_dia,
-                                        use_container_width=True,
-                                        hide_index=True,
-                                        column_config={
-                                            "Dia": st.column_config.NumberColumn("Dia", width="small"),
-                                            "Tipo": st.column_config.TextColumn("Tipo", width="small"),
-                                            "Exercício": st.column_config.TextColumn("Exercício", width="large"),
-                                            "Séries": st.column_config.NumberColumn("Séries", width="small"),
-                                            "Repetições": st.column_config.TextColumn("Reps", width="small"),
-                                            "% 1RM": st.column_config.TextColumn("% 1RM", width="small"),
-                                            "Carga (kg)": st.column_config.TextColumn("Carga", width="medium"),
-                                            "Descanso": st.column_config.TextColumn("Descanso", width="small"),
-                                        }
-                                    )
-    # Periodização ondulatória com progressão semanal
-    if objetivo == "Hipertrofia":
-        rep_schemes = {
-            1: {'series': 3, 'reps': '10-12', 'intensidade': 0.65, 'descanso': '60s'},
-            2: {'series': 4, 'reps': '8-10', 'intensidade': 0.72, 'descanso': '75s'},
-            3: {'series': 4, 'reps': '10-12', 'intensidade': 0.68, 'descanso': '60s'},
-            4: {'series': 3, 'reps': '12-15', 'intensidade': 0.62, 'descanso': '45s'}
-        }
-    elif objetivo == "Força Máxima":
-        rep_schemes = {
-            1: {'series': 4, 'reps': '5-6', 'intensidade': 0.82, 'descanso': '3min'},
-            2: {'series': 5, 'reps': '4-5', 'intensidade': 0.87, 'descanso': '3min'},
-            3: {'series': 3, 'reps': '3-4', 'intensidade': 0.92, 'descanso': '4min'},
-            4: {'series': 5, 'reps': '2-3', 'intensidade': 0.95, 'descanso': '5min'}
-        }
-    else:  # Potência
-        rep_schemes = {
-            1: {'series': 5, 'reps': '3-4', 'intensidade': 0.55, 'descanso': '2min'},
-            2: {'series': 6, 'reps': '2-3', 'intensidade': 0.60, 'descanso': '2min'},
-            3: {'series': 4, 'reps': '3-4', 'intensidade': 0.58, 'descanso': '2min'},
-            4: {'series': 8, 'reps': '1-2', 'intensidade': 0.70, 'descanso': '3min'}
-        }
-
-    # Estrutura de treino por dia
-    estrutura_treino = {
-        1: {  # Dia 1 - Agachamento + Supino
-            'principal': [
-                "Agachamento Livre (barra alta)",
-                "Supino Reto"
-            ],
-            'acessorio': [
-                "Agachamento Frontal",
-                "Supino Fechado",
-                "Desenvolvimento Militar",
-                "Remada Curvada"
-            ],
-            'finalizador': [
-                "Rosca Direta",
-                "Tríceps Corda (Cross)"
-            ]
-        },
-        2: {  # Dia 2 - Terra + Desenvolvimento
-            'principal': [
-                "Levantamento Terra Tradicional",
-                "Desenvolvimento com Halteres"
-            ],
-            'acessorio': [
-                "Terra Sumô",
-                "Stiff",
-                "Remada Nórdica",
-                "Barra Fixa com Peso"
-            ],
-            'finalizador': [
-                "Puxada Alta",
-                "Crucifixo Unilateral"
-            ]
-        },
-        3: {  # Dia 3 - Variação
-            'principal': [
-                "Agachamento Pausado",
-                "Board Press"
-            ],
-            'acessorio': [
-                "Box Squat",
-                "Good Morning",
-                "Avanço com Barra",
-                "Dips (Paralela)"
-            ],
-            'finalizador': [
-                "Rosca Polia",
-                "Remada Baixa"
-            ]
-        }
-    }
-    
-    # Se frequencia = 4, adiciona dia extra
-    if frequencia >= 4:
-        estrutura_treino[4] = {
-            'principal': [
-                "Terra Déficit",
-                "Desenvolvimento Militar"
-            ],
-            'acessorio': [
-                "Supino Pausado",
-                "Remada Alta",
-                "Afundo",
-                "Barra Fixa com Peso"
-            ],
-            'finalizador': [
-                "Tríceps Testa",
-                "Rosca Direta"
-            ]
-        }
-    
-    # Se frequencia = 5, adiciona dia de braço/isolamento
-    if frequencia == 5:
-        estrutura_treino[5] = {
-            'principal': [
-                "Supino Fechado",
-                "Remada Curvada"
-            ],
-            'acessorio': [
-                "Rosca Direta",
-                "Tríceps Testa",
-                "Rosca Polia",
-                "Tríceps Corda (Cross)"
-            ],
-            'finalizador': [
-                "Esmagamento (Gripper)",
-                "Pinça (Anilhas)"
-            ]
-        }
-
-    planilha = []
-    
-    for semana in range(1, semanas + 1):
-        # Ciclo de 4 semanas, repete para semanas > 4
-        idx_semana = ((semana - 1) % 4) + 1
-        scheme = rep_schemes[idx_semana]
-        
-        # Fator de progressão: aumenta 2-3% a cada ciclo de 4 semanas
-        ciclo = (semana - 1) // 4
-        fator_progressao = 1.0 + (ciclo * 0.025)
-        
-        for dia in range(1, frequencia + 1):
-            estrutura = estrutura_treino.get(dia, estrutura_treino[1])
-            
-            # Exercícios principais (maior intensidade)
-            for i, ex in enumerate(estrutura['principal']):
-                if "Agachamento" in ex or "Box Squat" in ex:
-                    carga_base = agach
-                elif "Supino" in ex or "Board Press" in ex:
-                    carga_base = sup
-                elif "Terra" in ex:
-                    carga_base = terra
-                elif "Desenvolvimento" in ex:
-                    carga_base = sup * 0.4
-                else:
-                    carga_base = agach * 0.4
-                
-                carga = round(carga_base * scheme['intensidade'] * fator_progressao, 1)
-                
-                planilha.append({
-                    'Semana': semana,
-                    'Dia': dia,
-                    'Tipo': 'Principal',
-                    'Exercício': ex,
-                    'Séries': scheme['series'],
-                    'Repetições': scheme['reps'],
-                    '% 1RM': int(scheme['intensidade'] * 100),
-                    'Carga (kg)': max(carga, 2.5),
-                    'Descanso': scheme['descanso']
-                })
-            
-            # Exercícios acessórios (intensidade moderada)
-            for ex in estrutura['acessorio']:
-                if "Agachamento" in ex or "Box Squat" in ex:
-                    carga_base = agach * 0.7
-                elif "Supino" in ex or "Board Press" in ex:
-                    carga_base = sup * 0.7
-                elif "Terra" in ex or "Stiff" in ex or "Good Morning" in ex:
-                    carga_base = terra * 0.65
-                elif "Desenvolvimento" in ex:
-                    carga_base = sup * 0.3
-                elif "Barra Fixa" in ex or "Puxada" in ex:
-                    carga_base = agach * 0.25
-                else:
-                    carga_base = agach * 0.35
-                
-                carga = round(carga_base * (scheme['intensidade'] - 0.05) * fator_progressao, 1)
-                
-                planilha.append({
-                    'Semana': semana,
-                    'Dia': dia,
-                    'Tipo': 'Acessório',
-                    'Exercício': ex,
-                    'Séries': scheme['series'] - 1,
-                    'Repetições': str(int(scheme['reps'].split('-')[0]) + 2) + '-' + str(int(scheme['reps'].split('-')[-1]) + 2) if '-' in str(scheme['reps']) else str(int(scheme['reps']) + 2),
-                    '% 1RM': int((scheme['intensidade'] - 0.05) * 100),
-                    'Carga (kg)': max(carga, 1.0),
-                    'Descanso': '60-90s'
-                })
-            
-            # Exercícios finalizadores
-            for ex in estrutura['finalizador']:
-                carga = round(agach * 0.2 * fator_progressao, 1)
-                
-                planilha.append({
-                    'Semana': semana,
-                    'Dia': dia,
-                    'Tipo': 'Finalizador',
-                    'Exercício': ex,
-                    'Séries': 3,
-                    'Repetições': '12-15',
-                    '% 1RM': '-',
-                    'Carga (kg)': max(carga, 1.0),
-                    'Descanso': '45s'
-                })
-
-    df = pd.DataFrame(planilha)
-    return df
-    if objetivo == "Hipertrofia":
-        rep_schemes = [
-            {'semana':1, 'series':3, 'reps':10, 'intensidade':0.65},
-            {'semana':2, 'series':4, 'reps':8, 'intensidade':0.70},
-            {'semana':3, 'series':5, 'reps':5, 'intensidade':0.78},
-            {'semana':4, 'series':3, 'reps':12, 'intensidade':0.60}
-        ]
-    elif objetivo == "Força Máxima":
-        rep_schemes = [
-            {'semana':1, 'series':4, 'reps':6, 'intensidade':0.80},
-            {'semana':2, 'series':5, 'reps':4, 'intensidade':0.85},
-            {'semana':3, 'series':3, 'reps':3, 'intensidade':0.90},
-            {'semana':4, 'series':5, 'reps':2, 'intensidade':0.93}
-        ]
-    else:
-        rep_schemes = [
-            {'semana':1, 'series':6, 'reps':3, 'intensidade':0.50},
-            {'semana':2, 'series':8, 'reps':2, 'intensidade':0.55},
-            {'semana':3, 'series':5, 'reps':3, 'intensidade':0.60},
-            {'semana':4, 'series':10, 'reps':1, 'intensidade':0.70}
-        ]
-
-    planilha = []
-    for semana in range(1, semanas+1):
-        # Repetir o ciclo de periodização para semanas > 4
-        idx_scheme = (semana - 1) % 4
-        scheme = rep_schemes[idx_scheme]
-        
-        for dia in range(1, frequencia+1):
-            if dia == 1:
-                ex_principais = list(EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'])
-            elif dia == 2:
-                ex_principais = list(EXERCICIOS['Terra'] + EXERCICIOS['Desenvolvimento'])
-            else:
-                ex_principais = list(EXERCICIOS['Remada'] + EXERCICIOS['Acessórios'])
-
-            if dia == 3:
-                ex_principais += EXERCICIOS['Braços']
-            else:
-                ex_principais += EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
-
-            for ex in ex_principais[:4]:
-                if "Agachamento" in ex:
-                    carga_base = agach
-                elif "Supino" in ex:
-                    carga_base = sup
-                elif "Terra" in ex:
-                    carga_base = terra
-                else:
-                    carga_base = agach * 0.5
-
-                carga = round(carga_base * scheme['intensidade'], 2)
-                planilha.append({
-                    'Semana': semana,
-                    'Dia': dia,
-                    'Exercício': ex,
-                    'Séries': scheme['series'],
-                    'Repetições': scheme['reps'],
-                    '% 1RM': int(scheme['intensidade']*100),
-                    'Carga (kg)': carga
-                })
-
-    df = pd.DataFrame(planilha)
-    return df
-
-def get_table_download_link(df):
-    """Gera link de download para planilha Excel"""
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Treino')
-    
-    excel_data = output.getvalue()
-    b64 = base64.b64encode(excel_data).decode()
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
-    return href
-
+# -----------------------------
+# MENU PRINCIPAL
+# -----------------------------
 menu = st.sidebar.selectbox("Menu", ["Cadastro de Cliente", "Avaliação & Fotos", "Geração de Treino", "Histórico & Evolução"])
 
 if menu == "Cadastro de Cliente":
@@ -805,22 +392,75 @@ elif menu == "Avaliação & Fotos":
             st.success("Fotos salvas com sucesso!")
 
 elif menu == "Geração de Treino":
-    st.header("📋 Gerar Planilha Ondulatória")
+    st.header("📋 Gerar Planilha de Periodização Ondulatória")
+    st.markdown("---")
+    
     clientes_df = carregar_clientes()
     if clientes_df.empty:
-        st.warning("Cadastre um cliente primeiro.")
+        st.warning("⚠️ Nenhum cliente cadastrado. Vá ao menu 'Cadastro de Cliente' primeiro.")
     else:
-        cliente_nome = st.selectbox("Escolha o cliente", clientes_df['nome'])
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            cliente_nome = st.selectbox("👤 Escolha o cliente", clientes_df['nome'])
+        
         id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
         cliente = carregar_cliente(id_cliente)
+        
         if cliente is not None:
-            st.write(f"**Objetivo:** {cliente['objetivo']} | **Nível:** {cliente['nivel']}")
-            semanas = st.slider("Semanas de treino", 4, 12, 4, step=4)
-            freq = st.radio("Dias por semana", [3, 4, 5])
-            if st.button("Gerar Treino"):
-                df = gerar_planilha(cliente, semanas=semanas, frequencia=freq)
-                st.dataframe(df)
-                st.markdown(get_table_download_link(df), unsafe_allow_html=True)
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("🎯 Objetivo", cliente['objetivo'])
+            col2.metric("📊 Nível", cliente['nivel'].split('(')[0].strip())
+            col3.metric("🏋️ Agachamento", f"{cliente['agachamento_1rm']} kg")
+            col4.metric("🏋️ Supino", f"{cliente['supino_1rm']} kg")
+            
+            st.markdown("---")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                semanas = st.select_slider(
+                    "📅 Semanas de treino",
+                    options=[4, 8, 12, 16],
+                    value=4,
+                    help="Período total do programa"
+                )
+            with col2:
+                freq = st.radio(
+                    "📆 Dias por semana",
+                    options=[3, 4, 5],
+                    horizontal=True,
+                    help="Frequência semanal de treinos"
+                )
+            with col3:
+                st.markdown("<br>", unsafe_allow_html=True)
+                gerar = st.button("🚀 GERAR PLANILHA", use_container_width=True, type="primary")
+            
+            if gerar:
+                with st.spinner(f"Gerando periodização para {semanas} semanas..."):
+                    planilhas = gerar_planilha_ondulatoria(cliente, semanas=semanas, frequencia=freq)
+                
+                st.success(f"✅ Planilha gerada com sucesso! {len(planilhas)} semanas programadas.")
+                
+                st.markdown(get_table_download_link(planilhas, cliente_nome), unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.subheader("📊 Visualização Prévia")
+                
+                tabs = st.tabs(list(planilhas.keys()))
+                
+                for i, (nome_semana, df_semana) in enumerate(planilhas.items()):
+                    with tabs[i]:
+                        st.markdown(f"### {nome_semana}")
+                        
+                        for dia in df_semana['Dia'].unique():
+                            if dia != '':
+                                df_dia = df_semana[df_semana['Dia'] == dia]
+                                with st.expander(f"📍 Dia {int(dia)}", expanded=True):
+                                    st.dataframe(
+                                        df_dia,
+                                        use_container_width=True,
+                                        hide_index=True
+                                    )
 
 elif menu == "Histórico & Evolução":
     st.header("📈 Histórico do Cliente")
