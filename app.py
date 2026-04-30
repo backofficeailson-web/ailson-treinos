@@ -138,30 +138,38 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     terra = cliente['terra_1rm']
 
     if objetivo == "Hipertrofia":
-        rep_schemes = [
-            {'semana':1, 'series':3, 'reps':10, 'intensidade':0.65},
-            {'semana':2, 'series':4, 'reps':8, 'intensidade':0.70},
-            {'semana':3, 'series':5, 'reps':5, 'intensidade':0.78},
-            {'semana':4, 'series':3, 'reps':12, 'intensidade':0.60}
+        rep_schemes_base = [
+            {'series':3, 'reps':10, 'intensidade':0.65},
+            {'series':4, 'reps':8, 'intensidade':0.70},
+            {'series':5, 'reps':5, 'intensidade':0.78},
+            {'series':3, 'reps':12, 'intensidade':0.60}
         ]
     elif objetivo == "Força Máxima":
-        rep_schemes = [
-            {'semana':1, 'series':4, 'reps':6, 'intensidade':0.80},
-            {'semana':2, 'series':5, 'reps':4, 'intensidade':0.85},
-            {'semana':3, 'series':3, 'reps':3, 'intensidade':0.90},
-            {'semana':4, 'series':5, 'reps':2, 'intensidade':0.93}
+        rep_schemes_base = [
+            {'series':4, 'reps':6, 'intensidade':0.80},
+            {'series':5, 'reps':4, 'intensidade':0.85},
+            {'series':3, 'reps':3, 'intensidade':0.90},
+            {'series':5, 'reps':2, 'intensidade':0.93}
         ]
-    else:
-        rep_schemes = [
-            {'semana':1, 'series':6, 'reps':3, 'intensidade':0.50},
-            {'semana':2, 'series':8, 'reps':2, 'intensidade':0.55},
-            {'semana':3, 'series':5, 'reps':3, 'intensidade':0.60},
-            {'semana':4, 'series':10, 'reps':1, 'intensidade':0.70}
+    else:  # Potência
+        rep_schemes_base = [
+            {'series':6, 'reps':3, 'intensidade':0.50},
+            {'series':8, 'reps':2, 'intensidade':0.55},
+            {'series':5, 'reps':3, 'intensidade':0.60},
+            {'series':10, 'reps':1, 'intensidade':0.70}
         ]
 
     planilha = []
     for semana in range(1, semanas+1):
-        scheme = rep_schemes[semana-1]
+        # Calcular ciclo atual (0-based)
+        ciclo = (semana - 1) // 4
+        indice_semana = (semana - 1) % 4
+        scheme_base = rep_schemes_base[indice_semana]
+
+        # Progressão: aumentar intensidade em 2% por ciclo
+        fator_progressao = 1 + (ciclo * 0.02)
+        intensidade = round(scheme_base['intensidade'] * fator_progressao, 2)
+
         for dia in range(1, frequencia+1):
             if dia == 1:
                 ex_principais = list(EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'])
@@ -185,19 +193,18 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 else:
                     carga_base = agach * 0.5
 
-                carga = round(carga_base * scheme['intensidade'], 2)
+                carga = round(carga_base * intensidade, 2)
                 planilha.append({
                     'Semana': semana,
                     'Dia': dia,
                     'Exercício': ex,
-                    'Séries': scheme['series'],
-                    'Repetições': scheme['reps'],
-                    '% 1RM': int(scheme['intensidade']*100),
+                    'Séries': scheme_base['series'],
+                    'Repetições': scheme_base['reps'],
+                    '% 1RM': int(intensidade*100),
                     'Carga (kg)': carga
                 })
 
     df = pd.DataFrame(planilha)
-    return df
 
 def get_table_download_link(df):
     towrite = io.BytesIO()
