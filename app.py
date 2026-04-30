@@ -54,10 +54,10 @@ color: {BRANCO} !important;
 LOGO_PATH = "logo.png"
 
 if os.path.exists(LOGO_PATH):
-st.sidebar.image(LOGO_PATH, width=180)
+   st.sidebar.image(LOGO_PATH, width=180)
 else:
-st.sidebar.title("AILSON PERSONAL")
-st.sidebar.markdown("*Trainner*")
+   st.sidebar.title("AILSON PERSONAL")
+   st.sidebar.markdown("*Trainner*")
 
 def init_db():
 conn = sqlite3.connect('clientes.db')
