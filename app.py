@@ -19,7 +19,7 @@ initial_sidebar_state="expanded"
 )
 
 # Cores da marca (azul e preto)
-AZUL = "#1E3A8A" # Azul escuro, ajuste se quiser
+AZUL = "#1E3A8A"
 PRETO = "#111111"
 BRANCO = "#FFFFFF"
 
@@ -53,15 +53,14 @@ color: {BRANCO} !important;
 </style>
 """, unsafe_allow_html=True)
 
-# Logo (ajuste o caminho conforme necessário, ou use upload)
-LOGO_PATH = "logo.png" # depois substitua pelo seu arquivo
+# Logo
+LOGO_PATH = "logo.png"
 
 if os.path.exists(LOGO_PATH):
 st.sidebar.image(LOGO_PATH, width=180)
 else:
 st.sidebar.title("AILSON PERSONAL")
 st.sidebar.markdown("*Trainner*")
-st.sidebar.markdown("### Sistema de Treinamento Ondulatório")
 
 # -----------------------------
 # BANCO DE DADOS (SQLite)
@@ -155,8 +154,6 @@ agach = cliente['agachamento_1rm']
 sup = cliente['supino_1rm']
 terra = cliente['terra_1rm']
 
-# Dicionário de cargas base (ondulatório diário - variação semanal)
-# Exemplo: hipertrofia (semana 1: 3x10, semana 2: 4x8, semana 3: 5x5, semana 4: 3x3)
 if objetivo == "Hipertrofia":
 rep_schemes = [
 {'semana':1, 'series':3, 'reps':10, 'intensidade':0.65},
@@ -171,7 +168,7 @@ rep_schemes = [
 {'semana':3, 'series':3, 'reps':3, 'intensidade':0.90},
 {'semana':4, 'series':5, 'reps':2, 'intensidade':0.93}
 ]
-else: # Potência
+else:
 rep_schemes = [
 {'semana':1, 'series':6, 'reps':3, 'intensidade':0.50},
 {'semana':2, 'series':8, 'reps':2, 'intensidade':0.55},
@@ -179,13 +176,10 @@ rep_schemes = [
 {'semana':4, 'series':10, 'reps':1, 'intensidade':0.70}
 ]
 
-# Montar planilha
 planilha = []
 for semana in range(1, semanas+1):
 scheme = rep_schemes[semana-1]
-# Dias da semana (ex.: 3 dias fixos)
 for dia in range(1, frequencia+1):
-# Exercícios principais por dia (exceto braços e acessórios)
 if dia == 1:
 ex_principais = list(EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'])
 elif dia == 2:
@@ -193,14 +187,12 @@ ex_principais = list(EXERCICIOS['Terra'] + EXERCICIOS['Desenvolvimento'])
 else:
 ex_principais = list(EXERCICIOS['Remada'] + EXERCICIOS['Acessórios'])
 
-# Acessórios
 if dia == 3:
 ex_principais += EXERCICIOS['Braços']
 else:
 ex_principais += EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
 
-for ex in ex_principais[:4]: # 4 exercícios por dia
-# Carga base
+for ex in ex_principais[:4]:
 if "Agachamento" in ex:
 carga_base = agach
 elif "Supino" in ex:
@@ -208,7 +200,6 @@ carga_base = sup
 elif "Terra" in ex:
 carga_base = terra
 else:
-# estimativa para outros
 carga_base = agach * 0.5
 
 carga = round(carga_base * scheme['intensidade'], 2)
@@ -280,7 +271,6 @@ perfil = col3.file_uploader("Perfil", type=['jpg','jpeg','png'])
 if st.button("Salvar Fotos"):
 if not os.path.exists("fotos"):
 os.makedirs("fotos")
-# Salvar localmente e no banco (simplificado para blob)
 for img, tipo in [(frente, "frente"), (costas, "costas"), (perfil, "perfil")]:
 if img:
 img_pil = Image.open(img)
@@ -312,7 +302,6 @@ if clientes_df.empty:
 st.warning("Nenhum cliente cadastrado.")
 else:
 nome = st.selectbox("Cliente", clientes_df['nome'])
-# Exibir dados básicos
 cliente = carregar_cliente(int(clientes_df[clientes_df['nome']==nome]['id'].values[0]))
 col1, col2, col3 = st.columns(3)
 col1.metric("Agachamento 1RM", f"{cliente['agachamento_1rm']} kg")
