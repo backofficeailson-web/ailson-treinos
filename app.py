@@ -311,4 +311,4 @@ st.info("Gráficos de evolução serão disponibilizados em breve.")
 
 # Rodapé
 st.sidebar.markdown("---")
-st.sidebar.markdown("© 2025 Ailson Personal Trainer")
+st.sidebar.markdown("© 2026 Ailson Personal Trainer")
