@@ -207,10 +207,10 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     df = pd.DataFrame(planilha)
 
 def get_table_download_link(df):
-    towrite = io.BytesIO()
-    df.to_excel(towrite, index=False, engine='openpyxl')
-    towrite.seek(0)
-    b64 = base64.b64encode(towrite.read()).decode()
+    twritte = io.BytesIO()
+    df.to_excel(twritte, index=False, engine='openpyxl')
+    twritte.seek(0)
+    b64 = base64.b64encode(twritte.read()).decode()
     href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
     return href
 
