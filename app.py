@@ -19,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Paleta de cores Hulk - CORRIGIDA PARA VISIBILIDADE
+# Paleta de cores Hulk
 VERDE_HULK = "#2ECC40"
 VERDE_ESCURO = "#0D3B0D"
 VERDE_CLARO = "#7CFC00"
@@ -31,25 +31,27 @@ CINZA_MEDIO = "#2D2D2D"
 BRANCO = "#FFFFFF"
 AMARELO_ALERTA = "#FFD700"
 
-# CSS Tema Hulk CORRIGIDO
+# CSS CORRIGIDO - Removendo seletores problemáticos
 st.markdown(f"""
 <style>
+    /* Fundo principal */
     .stApp {{
         background: linear-gradient(135deg, {PRETO} 0%, {VERDE_ESCURO} 100%);
         background-attachment: fixed;
     }}
     
-    .stSidebar {{
+    /* Sidebar */
+    section[data-testid="stSidebar"] {{
         background: linear-gradient(180deg, {PRETO} 0%, {ROXO_ESCURO} 100%);
         border-right: 3px solid {VERDE_HULK};
     }}
     
+    /* Cabeçalhos */
     h1, h2, h3, h4, h5, h6 {{
         color: {VERDE_CLARO} !important;
         font-weight: 900 !important;
         text-transform: uppercase !important;
         letter-spacing: 2px !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     }}
     
     h1 {{
@@ -63,207 +65,72 @@ st.markdown(f"""
         padding-left: 15px;
     }}
     
-    /* TEXTOS - CORRIGIDO PARA BRANCO PURO */
-    p, label, span, div, .stMarkdown, .stText {{
-        color: {BRANCO} !important;
-    }}
-    
-    .stSelectbox label, .stTextInput label, .stNumberInput label, .stRadio label, .stDateInput label {{
-        color: {BRANCO} !important;
-        font-weight: bold !important;
-        font-size: 1rem !important;
-    }}
-    
     /* Botões */
-    .stButton>button {{
-        background: linear-gradient(135deg, {VERDE_HULK} 0%, {VERDE_ESCURO} 100%) !important;
+    .stButton > button {{
+        background: linear-gradient(135deg, {VERDE_HULK} 0%, {VERDE_ESCURO} 100%);
         color: {BRANCO} !important;
         border-radius: 10px !important;
         border: 2px solid {VERDE_CLARO} !important;
         font-weight: bold !important;
         text-transform: uppercase !important;
-        letter-spacing: 1px !important;
         padding: 10px 20px !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 15px rgba(46, 204, 64, 0.3);
     }}
     
-    .stButton>button:hover {{
-        background: linear-gradient(135deg, {VERDE_CLARO} 0%, {VERDE_HULK} 100%) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 25px rgba(46, 204, 64, 0.5) !important;
+    .stButton > button:hover {{
+        background: linear-gradient(135deg, {VERDE_CLARO} 0%, {VERDE_HULK} 100%);
         border-color: {BRANCO} !important;
         color: {PRETO} !important;
     }}
     
-    .stButton>button[kind="primary"] {{
-        background: linear-gradient(135deg, {ROXO_HULK} 0%, {VERDE_HULK} 100%) !important;
-        border: 2px solid {VERDE_CLARO} !important;
-        animation: pulse 2s infinite;
-    }}
-    
-    @keyframes pulse {{
-        0% {{ box-shadow: 0 0 0 0 rgba(46, 204, 64, 0.7); }}
-        70% {{ box-shadow: 0 0 0 15px rgba(46, 204, 64, 0); }}
-        100% {{ box-shadow: 0 0 0 0 rgba(46, 204, 64, 0); }}
-    }}
-    
     /* Métricas */
-    .stMetric {{
+    [data-testid="stMetric"] {{
         background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {VERDE_ESCURO} 100%);
         padding: 15px !important;
         border-radius: 10px !important;
         border: 2px solid {VERDE_HULK} !important;
-        box-shadow: 0 4px 15px rgba(46, 204, 64, 0.2);
     }}
     
-    .stMetric label {{
+    /* Formulários */
+    [data-testid="stForm"] {{
+        background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {CINZA_MEDIO} 100%);
+        padding: 20px !important;
+        border-radius: 15px !important;
+        border: 2px solid {VERDE_HULK} !important;
+    }}
+    
+    /* Expander */
+    .streamlit-expanderHeader {{
+        background: linear-gradient(135deg, {ROXO_ESCURO} 0%, {VERDE_ESCURO} 100%);
         color: {VERDE_CLARO} !important;
+        border: 1px solid {VERDE_HULK} !important;
+        border-radius: 8px !important;
         font-weight: bold !important;
     }}
     
-    .stMetric [data-testid="stMetricValue"] {{
-        color: {BRANCO} !important;
-        font-size: 2rem !important;
-    }}
-    
-    /* Dataframe e tabelas */
-    .stDataFrame, .dataframe {{
-        background: {CINZA_ESCURO} !important;
+    .streamlit-expanderContent {{
+        background-color: {CINZA_ESCURO};
         border: 1px solid {VERDE_HULK} !important;
-        border-radius: 10px !important;
-        overflow: hidden;
-    }}
-    
-    .stDataFrame th, .dataframe th {{
-        background-color: {ROXO_ESCURO} !important;
-        color: {VERDE_CLARO} !important;
-    }}
-    
-    .stDataFrame td, .dataframe td {{
-        color: {BRANCO} !important;
-        background-color: {CINZA_MEDIO} !important;
-    }}
-    
-    /* INPUTS - CORRIGIDO */
-    .stTextInput input, .stNumberInput input {{
-        background-color: {CINZA_MEDIO} !important;
-        color: {BRANCO} !important;
-        border: 2px solid {VERDE_ESCURO} !important;
-        border-radius: 8px !important;
-    }}
-    
-    .stTextInput input:focus, .stNumberInput input:focus {{
-        border-color: {VERDE_HULK} !important;
-        box-shadow: 0 0 10px rgba(46, 204, 64, 0.3) !important;
-    }}
-    
-    /* SELECTBOX */
-    .stSelectbox [data-baseweb="select"] {{
-        background-color: {CINZA_MEDIO} !important;
-    }}
-    
-    .stSelectbox [data-baseweb="select"] div {{
-        color: {BRANCO} !important;
-        background-color: {CINZA_MEDIO} !important;
-    }}
-    
-    .stSelectbox [data-baseweb="popover"] {{
-        background-color: {CINZA_ESCURO} !important;
-    }}
-    
-    .stSelectbox [data-baseweb="option"] {{
-        color: {BRANCO} !important;
-        background-color: {CINZA_MEDIO} !important;
-    }}
-    
-    .stSelectbox [data-baseweb="option"]:hover {{
-        background-color: {VERDE_ESCURO} !important;
-    }}
-    
-    /* Slider */
-    .stSlider [data-baseweb="slider"] {{
-        background: {VERDE_HULK} !important;
-    }}
-    
-    /* Radio buttons */
-    .stRadio [role="radiogroup"] label {{
-        color: {BRANCO} !important;
-    }}
-    
-    .stRadio [data-baseweb="radio"] {{
-        background-color: {VERDE_HULK} !important;
+        border-radius: 0 0 8px 8px;
     }}
     
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {{
-        background-color: {CINZA_ESCURO} !important;
-        border-radius: 10px 10px 0 0 !important;
-        border: 1px solid {VERDE_HULK} !important;
-    }}
-    
-    .stTabs [data-baseweb="tab"] {{
-        color: {BRANCO} !important;
-        font-weight: bold !important;
+        background-color: {CINZA_ESCURO};
+        border-radius: 10px 10px 0 0;
+        border: 1px solid {VERDE_HULK};
     }}
     
     .stTabs [aria-selected="true"] {{
         background-color: {VERDE_HULK} !important;
         color: {PRETO} !important;
-        border-radius: 8px 8px 0 0 !important;
-    }}
-    
-    /* Expander */
-    .streamlit-expanderHeader {{
-        background: linear-gradient(135deg, {ROXO_ESCURO} 0%, {VERDE_ESCURO} 100%) !important;
-        color: {VERDE_CLARO} !important;
-        border: 1px solid {VERDE_HULK} !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        font-size: 1.1rem !important;
-    }}
-    
-    .streamlit-expanderContent {{
-        background-color: {CINZA_ESCURO} !important;
-        border: 1px solid {VERDE_HULK} !important;
-        border-radius: 0 0 8px 8px !important;
     }}
     
     /* Alertas */
-    .stSuccess {{
-        background-color: {VERDE_ESCURO} !important;
-        color: {VERDE_CLARO} !important;
-        border-left: 5px solid {VERDE_HULK} !important;
-    }}
-    
-    .stWarning {{
-        background-color: {ROXO_ESCURO} !important;
-        color: {AMARELO_ALERTA} !important;
-        border-left: 5px solid {AMARELO_ALERTA} !important;
-    }}
-    
-    .stInfo {{
-        background-color: {CINZA_ESCURO} !important;
-        color: {VERDE_CLARO} !important;
-        border-left: 5px solid {VERDE_HULK} !important;
-    }}
-    
-    /* Form */
-    .stForm {{
-        background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {CINZA_MEDIO} 100%);
-        padding: 20px !important;
-        border-radius: 15px !important;
-        border: 2px solid {VERDE_HULK} !important;
-        box-shadow: 0 8px 32px rgba(46, 204, 64, 0.15);
-    }}
-    
-    /* File Uploader */
-    .stFileUploader {{
-        background: {CINZA_MEDIO} !important;
-        border: 2px dashed {VERDE_HULK} !important;
+    .stAlert {{
         border-radius: 10px !important;
     }}
     
+    /* Separadores */
     hr {{
         border: none !important;
         height: 2px !important;
@@ -271,44 +138,16 @@ st.markdown(f"""
         margin: 20px 0 !important;
     }}
     
+    /* Scrollbar */
     ::-webkit-scrollbar {{
         width: 10px;
     }}
-    
     ::-webkit-scrollbar-track {{
         background: {PRETO};
     }}
-    
     ::-webkit-scrollbar-thumb {{
         background: {VERDE_HULK};
         border-radius: 5px;
-    }}
-    
-    ::-webkit-scrollbar-thumb:hover {{
-        background: {VERDE_CLARO};
-    }}
-    
-    .stSidebar .stSelectbox label, 
-    .stSidebar .stTextInput label,
-    .stSidebar p,
-    .stSidebar span {{
-        color: {BRANCO} !important;
-    }}
-    
-    .stMetric:hover {{
-        border-color: {VERDE_CLARO} !important;
-        box-shadow: 0 0 25px rgba(124, 252, 0, 0.5) !important;
-        transform: scale(1.02) !important;
-        transition: all 0.3s ease !important;
-    }}
-    
-    /* Estilo para tabelas de avaliação */
-    .avaliacao-card {{
-        background: {CINZA_ESCURO};
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid {VERDE_HULK};
-        margin: 10px 0;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -334,7 +173,6 @@ def init_db():
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
     
-    # Tabela de clientes
     c.execute('''CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY,
                     nome TEXT,
@@ -349,7 +187,6 @@ def init_db():
                     historico TEXT
                 )''')
     
-    # Tabela de avaliação física (dobras e circunferências)
     c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_fisica (
                     id INTEGER PRIMARY KEY,
                     cliente_id INTEGER,
@@ -379,7 +216,6 @@ def init_db():
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id)
                 )''')
     
-    # Tabela de avaliação postural
     c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_postural (
                     id INTEGER PRIMARY KEY,
                     cliente_id INTEGER,
@@ -398,7 +234,6 @@ def init_db():
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id)
                 )''')
     
-    # Tabela de fotos
     c.execute('''CREATE TABLE IF NOT EXISTS fotos (
                     id INTEGER PRIMARY KEY,
                     cliente_id INTEGER,
@@ -485,40 +320,31 @@ def carregar_fotos(cliente_id):
     return df
 
 # -----------------------------
-# FUNÇÕES DE CÁLCULO - PROTOCOLOS
+# FUNÇÕES DE CÁLCULO
 # -----------------------------
 def calcular_percentual_gordura(dados, metodo="pollock_7"):
-    """
-    Calcula percentual de gordura usando diferentes protocolos
-    """
     idade = dados.get('idade', 30)
-    sexo = dados.get('sexo', 'M')  # M ou F
+    sexo = dados.get('sexo', 'M')
     resultado = {}
     
-    # Soma das dobras
     soma_7 = sum([dados.get(d, 0) for d in ['triceps', 'subescapular', 'peitoral', 
                                               'axilar_media', 'suprailiaca', 'abdominal', 'coxa']])
     soma_3_peitoral = sum([dados.get(d, 0) for d in ['peitoral', 'abdominal', 'coxa']])
     
     if sexo == 'M':
-        # Protocolo Pollock 7 dobras (1975)
         dc_7 = 1.112 - (0.00043499 * soma_7) + (0.00000055 * soma_7**2) - (0.00028826 * idade)
         resultado['Pollock 7 Dobras'] = round((4.95 / dc_7 - 4.50) * 100, 2)
         
-        # Protocolo Pollock 3 dobras (Peitoral, Abdominal, Coxa)
         dc_3 = 1.10938 - (0.0008267 * soma_3_peitoral) + (0.0000016 * soma_3_peitoral**2) - (0.0002574 * idade)
         resultado['Pollock 3 Dobras'] = round((4.95 / dc_3 - 4.50) * 100, 2)
         
-        # Protocolo Guedes 3 dobras
         soma_guedes = sum([dados.get(d, 0) for d in ['triceps', 'suprailiaca', 'abdominal']])
-        dc_guedes = 1.17136 - (0.06706 * (soma_guedes / 10))
-        resultado['Guedes (3 Dobras)'] = round((4.95 / dc_guedes - 4.50) * 100, 2)
+        resultado['Guedes (3 Dobras)'] = round((0.187 * soma_guedes + 10.73), 2)
         
-        # Protocolo Faulkner (4 dobras)
         soma_faulkner = sum([dados.get(d, 0) for d in ['triceps', 'subescapular', 'suprailiaca', 'abdominal']])
         resultado['Faulkner'] = round((0.153 * soma_faulkner + 5.783), 2)
         
-    else:  # Feminino
+    else:
         dc_7 = 1.097 - (0.00046971 * soma_7) + (0.00000056 * soma_7**2) - (0.00012828 * idade)
         resultado['Pollock 7 Dobras'] = round((5.01 / dc_7 - 4.57) * 100, 2)
         
@@ -531,44 +357,29 @@ def calcular_percentual_gordura(dados, metodo="pollock_7"):
     return resultado
 
 def classificar_gordura(percentual, sexo='M', idade=30):
-    """Classifica o percentual de gordura"""
     if sexo == 'M':
         if idade < 30:
-            faixas = [
-                (6, "Excelente"), (10, "Bom"), (14, "Acima da Média"),
-                (19, "Média"), (25, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(6, "Excelente"), (10, "Bom"), (14, "Acima da Média"),
+                     (19, "Média"), (25, "Abaixo da Média"), (100, "Ruim")]
         elif idade < 40:
-            faixas = [
-                (8, "Excelente"), (12, "Bom"), (17, "Acima da Média"),
-                (22, "Média"), (28, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(8, "Excelente"), (12, "Bom"), (17, "Acima da Média"),
+                     (22, "Média"), (28, "Abaixo da Média"), (100, "Ruim")]
         elif idade < 50:
-            faixas = [
-                (10, "Excelente"), (15, "Bom"), (20, "Acima da Média"),
-                (25, "Média"), (30, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(10, "Excelente"), (15, "Bom"), (20, "Acima da Média"),
+                     (25, "Média"), (30, "Abaixo da Média"), (100, "Ruim")]
         else:
-            faixas = [
-                (12, "Excelente"), (17, "Bom"), (22, "Acima da Média"),
-                (27, "Média"), (32, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(12, "Excelente"), (17, "Bom"), (22, "Acima da Média"),
+                     (27, "Média"), (32, "Abaixo da Média"), (100, "Ruim")]
     else:
         if idade < 30:
-            faixas = [
-                (12, "Excelente"), (16, "Bom"), (20, "Acima da Média"),
-                (25, "Média"), (31, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(12, "Excelente"), (16, "Bom"), (20, "Acima da Média"),
+                     (25, "Média"), (31, "Abaixo da Média"), (100, "Ruim")]
         elif idade < 40:
-            faixas = [
-                (14, "Excelente"), (18, "Bom"), (23, "Acima da Média"),
-                (28, "Média"), (33, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(14, "Excelente"), (18, "Bom"), (23, "Acima da Média"),
+                     (28, "Média"), (33, "Abaixo da Média"), (100, "Ruim")]
         else:
-            faixas = [
-                (16, "Excelente"), (20, "Bom"), (25, "Acima da Média"),
-                (30, "Média"), (35, "Abaixo da Média"), (100, "Ruim")
-            ]
+            faixas = [(16, "Excelente"), (20, "Bom"), (25, "Acima da Média"),
+                     (30, "Média"), (35, "Abaixo da Média"), (100, "Ruim")]
     
     for limite, classificacao in faixas:
         if percentual <= limite:
@@ -576,53 +387,34 @@ def classificar_gordura(percentual, sexo='M', idade=30):
     return "Não classificado"
 
 def calcular_imc(peso, altura):
-    """Calcula IMC"""
     if altura > 0:
-        imc = peso / (altura ** 2)
-        return round(imc, 2)
+        return round(peso / (altura ** 2), 2)
     return 0
 
 def classificar_imc(imc):
-    """Classifica IMC"""
-    if imc < 18.5:
-        return "Abaixo do Peso"
-    elif imc < 24.9:
-        return "Peso Normal"
-    elif imc < 29.9:
-        return "Sobrepeso"
-    elif imc < 34.9:
-        return "Obesidade Grau I"
-    elif imc < 39.9:
-        return "Obesidade Grau II"
-    else:
-        return "Obesidade Grau III"
+    if imc < 18.5: return "Abaixo do Peso"
+    elif imc < 24.9: return "Peso Normal"
+    elif imc < 29.9: return "Sobrepeso"
+    elif imc < 34.9: return "Obesidade Grau I"
+    elif imc < 39.9: return "Obesidade Grau II"
+    else: return "Obesidade Grau III"
 
 def calcular_rcq(cintura, quadril):
-    """Calcula Relação Cintura-Quadril"""
     if quadril > 0:
         return round(cintura / quadril, 2)
     return 0
 
 def classificar_rcq(rcq, sexo='M'):
-    """Classifica RCQ"""
     if sexo == 'M':
-        if rcq < 0.85:
-            return "Risco Baixo"
-        elif rcq < 0.90:
-            return "Risco Moderado"
-        elif rcq < 0.95:
-            return "Risco Alto"
-        else:
-            return "Risco Muito Alto"
+        if rcq < 0.85: return "Risco Baixo"
+        elif rcq < 0.90: return "Risco Moderado"
+        elif rcq < 0.95: return "Risco Alto"
+        else: return "Risco Muito Alto"
     else:
-        if rcq < 0.75:
-            return "Risco Baixo"
-        elif rcq < 0.80:
-            return "Risco Moderado"
-        elif rcq < 0.85:
-            return "Risco Alto"
-        else:
-            return "Risco Muito Alto"
+        if rcq < 0.75: return "Risco Baixo"
+        elif rcq < 0.80: return "Risco Moderado"
+        elif rcq < 0.85: return "Risco Alto"
+        else: return "Risco Muito Alto"
 
 # -----------------------------
 # FUNÇÕES DE GERAÇÃO DE TREINO
@@ -723,10 +515,6 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                 {'nome': 'Remada Alta', 'tipo': 'FINALIZADOR', 'base': 'agach', 'fator': 0.20},
             ]
         }
-    
-    if objetivo == "Força Máxima":
-        for dia in dias_treino:
-            dias_treino[dia]['exercicios'] = [ex for ex in dias_treino[dia]['exercicios'] if ex['tipo'] in ['PRINCIPAL', 'ACESSÓRIO']][:4]
 
     planilhas_por_semana = {}
 
@@ -808,7 +596,6 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
             
             from openpyxl.styles import PatternFill, Font
             purple_fill = PatternFill(start_color='6A1B9A', end_color='6A1B9A', fill_type='solid')
-            dark_fill = PatternFill(start_color='1A1A1A', end_color='1A1A1A', fill_type='solid')
             
             for row in range(2, len(df) + 2):
                 cell_value = worksheet.cell(row=row, column=1).value
@@ -817,11 +604,6 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
                         cell = worksheet.cell(row=row, column=col)
                         cell.fill = purple_fill
                         cell.font = Font(color='7CFC00', bold=True, size=11)
-                elif cell_value and str(cell_value).startswith('  '):
-                    for col in range(1, 10):
-                        cell = worksheet.cell(row=row, column=col)
-                        cell.fill = dark_fill
-                        cell.font = Font(color='FFFFFF')
     
     excel_data = output.getvalue()
     b64 = base64.b64encode(excel_data).decode()
@@ -843,11 +625,9 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
                display: inline-block;
                margin: 10px;
                border: 2px solid #7CFC00;
-               box-shadow: 0 4px 15px rgba(46, 204, 64, 0.5);
            ">
             🟢 BAIXAR PLANILHA COMPLETA 🟢
         </a>
-        <br><small style="color: #7CFC00;">Arquivo Excel com {len(planilhas_dict)} abas - Uma para cada semana</small>
     </div>
     '''
     return href
@@ -896,7 +676,7 @@ if menu == "Cadastro de Cliente":
             st.success(f"✅ Cliente {nome} cadastrado com sucesso!")
 
 # ============================================
-# AVALIAÇÃO FÍSICA (DOBRAS E CIRCUNFERÊNCIAS)
+# AVALIAÇÃO FÍSICA
 # ============================================
 elif menu == "Avaliação Física":
     st.header("📏 AVALIAÇÃO FÍSICA COMPLETA")
@@ -937,7 +717,7 @@ elif menu == "Avaliação Física":
                 pant_dir = col3.number_input("Panturrilha Direita", 10.0, 60.0, 37.0, 0.1)
                 pant_esq = st.number_input("Panturrilha Esquerda", 10.0, 60.0, 37.0, 0.1)
                 
-                st.markdown("### 🏥 Dobras Cutâneas (mm) - Protocolo Pollock 7 Dobras")
+                st.markdown("### 🏥 Dobras Cutâneas (mm)")
                 col1, col2, col3 = st.columns(3)
                 triceps = col1.number_input("Tríceps", 1.0, 80.0, 15.0, 0.1)
                 subescapular = col2.number_input("Subescapular", 1.0, 80.0, 15.0, 0.1)
@@ -949,7 +729,6 @@ elif menu == "Avaliação Física":
                 abdominal = col3.number_input("Abdominal", 1.0, 80.0, 20.0, 0.1)
                 coxa = st.number_input("Coxa", 1.0, 80.0, 18.0, 0.1)
                 
-                st.markdown("### 💪 Dobras Adicionais")
                 col1, col2 = st.columns(2)
                 biceps = col1.number_input("Bíceps", 1.0, 80.0, 10.0, 0.1)
                 perna = col2.number_input("Perna", 1.0, 80.0, 15.0, 0.1)
@@ -967,7 +746,6 @@ elif menu == "Avaliação Física":
                     )
                     salvar_avaliacao_fisica(dados_av)
                     
-                    # Calcular e mostrar resultados
                     dados_calc = {
                         'idade': 30, 'sexo': 'M', 'peso': peso, 'altura': altura,
                         'cintura': cintura, 'quadril': quadril,
@@ -980,22 +758,16 @@ elif menu == "Avaliação Física":
                     st.markdown("---")
                     st.subheader("📊 RESULTADOS DA AVALIAÇÃO")
                     
-                    # IMC
                     imc = calcular_imc(peso, altura)
-                    col1, col2, col3, col4 = st.columns(4)
-                    col1.metric("IMC", f"{imc:.1f}", classificar_imc(imc))
-                    
-                    # RCQ
                     rcq = calcular_rcq(cintura, quadril)
-                    col2.metric("RCQ", f"{rcq:.2f}", classificar_rcq(rcq, 'M'))
-                    
-                    # Percentual de gordura
                     resultados = calcular_percentual_gordura(dados_calc)
-                    for metodo, perc in resultados.items():
-                        col3.metric(metodo, f"{perc:.1f}%", classificar_gordura(perc))
-                        break
                     
-                    # Tabela completa de resultados
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("IMC", f"{imc:.1f}", classificar_imc(imc))
+                    col2.metric("RCQ", f"{rcq:.2f}", classificar_rcq(rcq, 'M'))
+                    primeiro_metodo = list(resultados.keys())[0]
+                    col3.metric(primeiro_metodo, f"{resultados[primeiro_metodo]:.1f}%", classificar_gordura(resultados[primeiro_metodo]))
+                    
                     st.markdown("### 📈 Percentual de Gordura - Todos os Protocolos")
                     df_resultados = pd.DataFrame([
                         {'Protocolo': k, 'Percentual (%)': v, 'Classificação': classificar_gordura(v)}
@@ -1003,29 +775,22 @@ elif menu == "Avaliação Física":
                     ])
                     st.dataframe(df_resultados, use_container_width=True, hide_index=True)
         
-        else:  # Histórico
+        else:
             st.subheader("📊 Histórico de Avaliações")
             df_avaliacoes = carregar_avaliacoes_fisicas(id_cliente)
             
             if df_avaliacoes.empty:
-                st.info("Nenhuma avaliação física encontrada para este cliente.")
+                st.info("Nenhuma avaliação física encontrada.")
             else:
                 for idx, av in df_avaliacoes.iterrows():
                     with st.expander(f"📅 {av['data']} - Peso: {av['peso']}kg | Altura: {av['altura']}m"):
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.markdown("**Circunferências:**")
                             st.write(f"Tórax: {av['torax']}cm | Cintura: {av['cintura']}cm | Abdômen: {av['abdomen']}cm")
                             st.write(f"Quadril: {av['quadril']}cm | Braço Dir: {av['braco_direito']}cm | Braço Esq: {av['braco_esquerdo']}cm")
-                            st.write(f"Coxa Dir: {av['coxa_direita']}cm | Coxa Esq: {av['coxa_esquerda']}cm")
                         with col2:
-                            st.markdown("**Dobras Cutâneas:**")
                             st.write(f"Tríceps: {av['triceps']}mm | Subescapular: {av['subescapular']}mm")
-                            st.write(f"Peitoral: {av['peitoral']}mm | Axilar Média: {av['axilar_media']}mm")
-                            st.write(f"Supra-ilíaca: {av['suprailiaca']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
-                        
-                        if av['observacoes']:
-                            st.markdown(f"**Observações:** {av['observacoes']}")
+                            st.write(f"Peitoral: {av['peitoral']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
 
 # ============================================
 # AVALIAÇÃO POSTURAL
@@ -1107,27 +872,23 @@ elif menu == "Avaliação Postural":
                     salvar_avaliacao_postural(dados_postural)
                     st.success("✅ Avaliação postural salva com sucesso!")
                     
-                    # Resumo da avaliação
                     st.markdown("---")
                     st.subheader("📋 Resumo da Avaliação Postural")
-                    
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.markdown("**Vistas:**")
-                        st.write(f"Anterior: {vista_anterior}")
-                        st.write(f"Posterior: {vista_posterior}")
-                        st.write(f"Lateral Dir: {vista_lat_dir}")
-                        st.write(f"Lateral Esq: {vista_lat_esq}")
+                        st.write(f"**Anterior:** {vista_anterior}")
+                        st.write(f"**Posterior:** {vista_posterior}")
+                        st.write(f"**Lateral Dir:** {vista_lat_dir}")
+                        st.write(f"**Lateral Esq:** {vista_lat_esq}")
                     with col2:
-                        st.markdown("**Segmentos:**")
-                        st.write(f"Cabeça: {cabeca}")
-                        st.write(f"Ombros: {ombros}")
-                        st.write(f"Coluna: {coluna}")
-                        st.write(f"Quadril: {quadril}")
-                        st.write(f"Joelhos: {joelhos}")
-                        st.write(f"Pés: {pes}")
+                        st.write(f"**Cabeça:** {cabeca}")
+                        st.write(f"**Ombros:** {ombros}")
+                        st.write(f"**Coluna:** {coluna}")
+                        st.write(f"**Quadril:** {quadril}")
+                        st.write(f"**Joelhos:** {joelhos}")
+                        st.write(f"**Pés:** {pes}")
         
-        else:  # Histórico
+        else:
             st.subheader("📊 Histórico de Avaliações Posturais")
             df_postural = carregar_avaliacoes_posturais(id_cliente)
             
@@ -1138,8 +899,8 @@ elif menu == "Avaliação Postural":
                     with st.expander(f"📅 {av['data']}"):
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.write(f"**Vista Anterior:** {av['vista_anterior']}")
-                            st.write(f"**Vista Posterior:** {av['vista_posterior']}")
+                            st.write(f"**Anterior:** {av['vista_anterior']}")
+                            st.write(f"**Posterior:** {av['vista_posterior']}")
                             st.write(f"**Cabeça:** {av['cabeca']}")
                             st.write(f"**Ombros:** {av['ombros']}")
                         with col2:
@@ -1147,8 +908,6 @@ elif menu == "Avaliação Postural":
                             st.write(f"**Quadril:** {av['quadril']}")
                             st.write(f"**Joelhos:** {av['joelhos']}")
                             st.write(f"**Pés:** {av['pes']}")
-                        if av['observacoes']:
-                            st.markdown(f"**Observações:** {av['observacoes']}")
 
 # ============================================
 # FOTOS AVALIATIVAS
@@ -1195,7 +954,7 @@ elif menu == "Fotos Avaliativas":
                         salvar_foto_db(id_cliente, str(data_foto), tipo, img_bytes)
                 st.success("✅ Fotos salvas com sucesso!")
         
-        else:  # Galeria
+        else:
             st.subheader("🖼️ Galeria de Fotos")
             df_fotos = carregar_fotos(id_cliente)
             
