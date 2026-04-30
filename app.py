@@ -58,8 +58,9 @@ LOGO_PATH = "logo.png" # depois substitua pelo seu arquivo
 
 if os.path.exists(LOGO_PATH):
 st.sidebar.image(LOGO_PATH, width=180)
-
-st.sidebar.title("AILSON PERSONAL TRAINNER")
+else:
+st.sidebar.title("AILSON PERSONAL")
+st.sidebar.markdown("*Trainner*")
 st.sidebar.markdown("### Sistema de Treinamento Ondulatório")
 
 # -----------------------------
