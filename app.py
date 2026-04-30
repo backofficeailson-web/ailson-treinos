@@ -18,12 +18,10 @@ layout="wide",
 initial_sidebar_state="expanded"
 )
 
-# Cores da marca (azul e preto)
 AZUL = "#1E3A8A"
 PRETO = "#111111"
 BRANCO = "#FFFFFF"
 
-# CSS customizado
 st.markdown(f"""
 <style>
 .stApp {{
@@ -53,7 +51,6 @@ color: {BRANCO} !important;
 </style>
 """, unsafe_allow_html=True)
 
-# Logo
 LOGO_PATH = "logo.png"
 
 if os.path.exists(LOGO_PATH):
@@ -62,9 +59,6 @@ else:
 st.sidebar.title("AILSON PERSONAL")
 st.sidebar.markdown("*Trainner*")
 
-# -----------------------------
-# BANCO DE DADOS (SQLite)
-# -----------------------------
 def init_db():
 conn = sqlite3.connect('clientes.db')
 c = conn.cursor()
@@ -94,9 +88,6 @@ conn.close()
 
 init_db()
 
-# -----------------------------
-# FUNÇÕES AUXILIARES
-# -----------------------------
 def salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq):
 conn = sqlite3.connect('clientes.db')
 c = conn.cursor()
@@ -125,9 +116,6 @@ c.execute("INSERT INTO fotos (cliente_id, data, foto_frente, foto_costas, foto_p
 conn.commit()
 conn.close()
 
-# -----------------------------
-# TABELA DE EXERCÍCIOS PADRÃO
-# -----------------------------
 EXERCICIOS = {
 "Agachamento": ["Agachamento Livre (barra alta)", "Agachamento Frontal", "Agachamento Pausado", "Box Squat"],
 "Supino": ["Supino Reto", "Supino Fechado", "Supino Pausado", "Board Press"],
@@ -141,15 +129,10 @@ EXERCICIOS = {
 "Pegada": ["Esmagamento (Gripper)", "Pinça (Anilhas)", "Sustentação (Barra)"]
 }
 
-# Equipamentos extras
 EQUIPAMENTOS = ["Correntes", "Elásticos", "Caixas"]
 
-# -----------------------------
-# GERADOR DE PLANILHA ONDULATÓRIA
-# -----------------------------
 def gerar_planilha(cliente, semanas=4, frequencia=3):
 objetivo = cliente['objetivo']
-nivel = cliente['nivel']
 agach = cliente['agachamento_1rm']
 sup = cliente['supino_1rm']
 terra = cliente['terra_1rm']
@@ -224,9 +207,6 @@ b64 = base64.b64encode(towrite.read()).decode()
 href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
 return href
 
-# -----------------------------
-# INTERFACE STREAMLIT
-# -----------------------------
 menu = st.sidebar.selectbox("Menu", ["Cadastro de Cliente", "Avaliação & Fotos", "Geração de Treino", "Histórico & Evolução"])
 
 if menu == "Cadastro de Cliente":
@@ -309,6 +289,5 @@ col2.metric("Supino 1RM", f"{cliente['supino_1rm']} kg")
 col3.metric("Terra 1RM", f"{cliente['terra_1rm']} kg")
 st.info("Gráficos de evolução serão disponibilizados em breve.")
 
-# Rodapé
 st.sidebar.markdown("---")
-st.sidebar.markdown("© 2026 Ailson Personal Trainer")
+st.sidebar.markdown("© 2025 Ailson Personal Trainer")
