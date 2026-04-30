@@ -207,11 +207,20 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     df = pd.DataFrame(planilha)
 
 def get_table_download_link(df):
-    twritte = io.BytesIO()
-    df.to_excel(twritte, index=False, engine='openpyxl')
-    twritte.seek(0)
-    b64 = base64.b64encode(twritte.read()).decode()
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
+    """Generates a link allowing the data in a given panda dataframe to be downloaded
+    in:  dataframe
+    out: href string
+    """
+    import base64
+    from io import BytesIO
+    
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='openpyxl')  # Fixed typo: 'twrite' not 'twritte'
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    writer.close()  # Don't forget to close the writer
+    excel_data = output.getvalue()
+    b64 = base64.b64encode(excel_data).decode()
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treinos.xlsx">Download Excel File</a>'
     return href
 
 menu = st.sidebar.selectbox("Menu", ["Cadastro de Cliente", "Avaliação & Fotos", "Geração de Treino", "Histórico & Evolução"])
