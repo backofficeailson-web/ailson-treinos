@@ -7,6 +7,7 @@ from PIL import Image
 import io
 import base64
 from io import BytesIO
+import json
 
 # -----------------------------
 # CONFIGURAÇÃO DA PÁGINA
@@ -18,18 +19,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Paleta de cores Hulk
+# Paleta de cores Hulk - CORRIGIDA PARA VISIBILIDADE
 VERDE_HULK = "#2ECC40"
-VERDE_ESCURO = "#1B5E20"
+VERDE_ESCURO = "#0D3B0D"
 VERDE_CLARO = "#7CFC00"
 ROXO_HULK = "#6A1B9A"
-ROXO_ESCURO = "#4A148C"
+ROXO_ESCURO = "#3D0F5C"
 PRETO = "#0A0A0A"
-CINZA_ESCURO = "#1A1A1A"
-BRANCO = "#F0F0F0"
+CINZA_ESCURO = "#1E1E1E"
+CINZA_MEDIO = "#2D2D2D"
+BRANCO = "#FFFFFF"
 AMARELO_ALERTA = "#FFD700"
 
-# CSS Tema Hulk
+# CSS Tema Hulk CORRIGIDO
 st.markdown(f"""
 <style>
     .stApp {{
@@ -42,16 +44,16 @@ st.markdown(f"""
         border-right: 3px solid {VERDE_HULK};
     }}
     
-    h1, h2, h3 {{
+    h1, h2, h3, h4, h5, h6 {{
         color: {VERDE_CLARO} !important;
         font-weight: 900 !important;
         text-transform: uppercase !important;
         letter-spacing: 2px !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     }}
     
     h1 {{
-        font-size: 3rem !important;
+        font-size: 2.5rem !important;
         border-bottom: 3px solid {VERDE_HULK};
         padding-bottom: 10px;
     }}
@@ -61,13 +63,21 @@ st.markdown(f"""
         padding-left: 15px;
     }}
     
-    p, label, .stMarkdown {{
+    /* TEXTOS - CORRIGIDO PARA BRANCO PURO */
+    p, label, span, div, .stMarkdown, .stText {{
         color: {BRANCO} !important;
     }}
     
+    .stSelectbox label, .stTextInput label, .stNumberInput label, .stRadio label, .stDateInput label {{
+        color: {BRANCO} !important;
+        font-weight: bold !important;
+        font-size: 1rem !important;
+    }}
+    
+    /* Botões */
     .stButton>button {{
-        background: linear-gradient(135deg, {VERDE_HULK} 0%, {VERDE_ESCURO} 100%);
-        color: white !important;
+        background: linear-gradient(135deg, {VERDE_HULK} 0%, {VERDE_ESCURO} 100%) !important;
+        color: {BRANCO} !important;
         border-radius: 10px !important;
         border: 2px solid {VERDE_CLARO} !important;
         font-weight: bold !important;
@@ -79,10 +89,11 @@ st.markdown(f"""
     }}
     
     .stButton>button:hover {{
-        background: linear-gradient(135deg, {VERDE_CLARO} 0%, {VERDE_HULK} 100%);
+        background: linear-gradient(135deg, {VERDE_CLARO} 0%, {VERDE_HULK} 100%) !important;
         transform: translateY(-2px) !important;
         box-shadow: 0 8px 25px rgba(46, 204, 64, 0.5) !important;
         border-color: {BRANCO} !important;
+        color: {PRETO} !important;
     }}
     
     .stButton>button[kind="primary"] {{
@@ -97,6 +108,7 @@ st.markdown(f"""
         100% {{ box-shadow: 0 0 0 0 rgba(46, 204, 64, 0); }}
     }}
     
+    /* Métricas */
     .stMetric {{
         background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {VERDE_ESCURO} 100%);
         padding: 15px !important;
@@ -115,15 +127,27 @@ st.markdown(f"""
         font-size: 2rem !important;
     }}
     
-    .stDataFrame {{
+    /* Dataframe e tabelas */
+    .stDataFrame, .dataframe {{
         background: {CINZA_ESCURO} !important;
         border: 1px solid {VERDE_HULK} !important;
         border-radius: 10px !important;
         overflow: hidden;
     }}
     
-    .stTextInput input, .stNumberInput input, .stSelectbox div {{
-        background-color: {CINZA_ESCURO} !important;
+    .stDataFrame th, .dataframe th {{
+        background-color: {ROXO_ESCURO} !important;
+        color: {VERDE_CLARO} !important;
+    }}
+    
+    .stDataFrame td, .dataframe td {{
+        color: {BRANCO} !important;
+        background-color: {CINZA_MEDIO} !important;
+    }}
+    
+    /* INPUTS - CORRIGIDO */
+    .stTextInput input, .stNumberInput input {{
+        background-color: {CINZA_MEDIO} !important;
         color: {BRANCO} !important;
         border: 2px solid {VERDE_ESCURO} !important;
         border-radius: 8px !important;
@@ -134,14 +158,35 @@ st.markdown(f"""
         box-shadow: 0 0 10px rgba(46, 204, 64, 0.3) !important;
     }}
     
+    /* SELECTBOX */
     .stSelectbox [data-baseweb="select"] {{
+        background-color: {CINZA_MEDIO} !important;
+    }}
+    
+    .stSelectbox [data-baseweb="select"] div {{
+        color: {BRANCO} !important;
+        background-color: {CINZA_MEDIO} !important;
+    }}
+    
+    .stSelectbox [data-baseweb="popover"] {{
         background-color: {CINZA_ESCURO} !important;
     }}
     
+    .stSelectbox [data-baseweb="option"] {{
+        color: {BRANCO} !important;
+        background-color: {CINZA_MEDIO} !important;
+    }}
+    
+    .stSelectbox [data-baseweb="option"]:hover {{
+        background-color: {VERDE_ESCURO} !important;
+    }}
+    
+    /* Slider */
     .stSlider [data-baseweb="slider"] {{
         background: {VERDE_HULK} !important;
     }}
     
+    /* Radio buttons */
     .stRadio [role="radiogroup"] label {{
         color: {BRANCO} !important;
     }}
@@ -150,6 +195,7 @@ st.markdown(f"""
         background-color: {VERDE_HULK} !important;
     }}
     
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {{
         background-color: {CINZA_ESCURO} !important;
         border-radius: 10px 10px 0 0 !important;
@@ -167,14 +213,23 @@ st.markdown(f"""
         border-radius: 8px 8px 0 0 !important;
     }}
     
+    /* Expander */
     .streamlit-expanderHeader {{
         background: linear-gradient(135deg, {ROXO_ESCURO} 0%, {VERDE_ESCURO} 100%) !important;
         color: {VERDE_CLARO} !important;
         border: 1px solid {VERDE_HULK} !important;
         border-radius: 8px !important;
         font-weight: bold !important;
+        font-size: 1.1rem !important;
     }}
     
+    .streamlit-expanderContent {{
+        background-color: {CINZA_ESCURO} !important;
+        border: 1px solid {VERDE_HULK} !important;
+        border-radius: 0 0 8px 8px !important;
+    }}
+    
+    /* Alertas */
     .stSuccess {{
         background-color: {VERDE_ESCURO} !important;
         color: {VERDE_CLARO} !important;
@@ -193,16 +248,18 @@ st.markdown(f"""
         border-left: 5px solid {VERDE_HULK} !important;
     }}
     
+    /* Form */
     .stForm {{
-        background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {PRETO} 100%);
+        background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {CINZA_MEDIO} 100%);
         padding: 20px !important;
         border-radius: 15px !important;
         border: 2px solid {VERDE_HULK} !important;
         box-shadow: 0 8px 32px rgba(46, 204, 64, 0.15);
     }}
     
+    /* File Uploader */
     .stFileUploader {{
-        background: {CINZA_ESCURO} !important;
+        background: {CINZA_MEDIO} !important;
         border: 2px dashed {VERDE_HULK} !important;
         border-radius: 10px !important;
     }}
@@ -232,8 +289,10 @@ st.markdown(f"""
     }}
     
     .stSidebar .stSelectbox label, 
-    .stSidebar .stTextInput label {{
-        color: {VERDE_CLARO} !important;
+    .stSidebar .stTextInput label,
+    .stSidebar p,
+    .stSidebar span {{
+        color: {BRANCO} !important;
     }}
     
     .stMetric:hover {{
@@ -241,6 +300,15 @@ st.markdown(f"""
         box-shadow: 0 0 25px rgba(124, 252, 0, 0.5) !important;
         transform: scale(1.02) !important;
         transition: all 0.3s ease !important;
+    }}
+    
+    /* Estilo para tabelas de avaliação */
+    .avaliacao-card {{
+        background: {CINZA_ESCURO};
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid {VERDE_HULK};
+        margin: 10px 0;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -255,23 +323,9 @@ else:
     <div style="text-align: center; padding: 20px 0;">
         <h1 style="color: {VERDE_CLARO}; font-size: 2rem; margin: 0;">🟢 HULK</h1>
         <h2 style="color: {VERDE_HULK}; font-size: 1.2rem; margin: 0;">PERSONAL TRAINER</h2>
-        <p style="color: {ROXO_HULK}; font-style: italic; margin-top: 10px;">"HULK ESMAGA!" 💪</p>
+        <p style="color: {BRANCO}; font-style: italic; margin-top: 10px;">"HULK ESMAGA!" 💪</p>
     </div>
     """, unsafe_allow_html=True)
-
-st.sidebar.markdown(f"""
-<div style="
-    background: linear-gradient(135deg, {VERDE_ESCURO} 0%, {ROXO_ESCURO} 100%);
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid {VERDE_HULK};
-    margin: 20px 0;
-">
-    <p style="color: {VERDE_CLARO}; text-align: center; margin: 0;">
-        🟢 NÍVEL DE FORÇA 🟢
-    </p>
-</div>
-""", unsafe_allow_html=True)
 
 # -----------------------------
 # BANCO DE DADOS
@@ -279,6 +333,8 @@ st.sidebar.markdown(f"""
 def init_db():
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
+    
+    # Tabela de clientes
     c.execute('''CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY,
                     nome TEXT,
@@ -292,19 +348,74 @@ def init_db():
                     pegada_esquerda REAL,
                     historico TEXT
                 )''')
+    
+    # Tabela de avaliação física (dobras e circunferências)
+    c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_fisica (
+                    id INTEGER PRIMARY KEY,
+                    cliente_id INTEGER,
+                    data TEXT,
+                    peso REAL,
+                    altura REAL,
+                    torax REAL,
+                    cintura REAL,
+                    abdomen REAL,
+                    quadril REAL,
+                    braco_direito REAL,
+                    braco_esquerdo REAL,
+                    coxa_direita REAL,
+                    coxa_esquerda REAL,
+                    panturrilha_direita REAL,
+                    panturrilha_esquerda REAL,
+                    triceps REAL,
+                    subescapular REAL,
+                    peitoral REAL,
+                    axilar_media REAL,
+                    suprailiaca REAL,
+                    abdominal REAL,
+                    coxa REAL,
+                    biceps REAL,
+                    perna REAL,
+                    observacoes TEXT,
+                    FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+                )''')
+    
+    # Tabela de avaliação postural
+    c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_postural (
+                    id INTEGER PRIMARY KEY,
+                    cliente_id INTEGER,
+                    data TEXT,
+                    vista_anterior TEXT,
+                    vista_posterior TEXT,
+                    vista_lateral_direita TEXT,
+                    vista_lateral_esquerda TEXT,
+                    cabeca TEXT,
+                    ombros TEXT,
+                    coluna TEXT,
+                    quadril TEXT,
+                    joelhos TEXT,
+                    pes TEXT,
+                    observacoes TEXT,
+                    FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+                )''')
+    
+    # Tabela de fotos
     c.execute('''CREATE TABLE IF NOT EXISTS fotos (
                     id INTEGER PRIMARY KEY,
                     cliente_id INTEGER,
                     data TEXT,
-                    foto_frente BLOB,
-                    foto_costas BLOB,
-                    foto_perfil BLOB
+                    tipo TEXT,
+                    foto BLOB,
+                    FOREIGN KEY (cliente_id) REFERENCES clientes (id)
                 )''')
+    
     conn.commit()
     conn.close()
 
 init_db()
 
+# -----------------------------
+# FUNÇÕES DO BANCO DE DADOS
+# -----------------------------
 def salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq):
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
@@ -325,13 +436,193 @@ def carregar_cliente(id_cliente):
     conn.close()
     return df.iloc[0] if not df.empty else None
 
-def salvar_foto(cliente_id, data, frente, costas, perfil):
+def salvar_avaliacao_fisica(dados):
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
-    c.execute("INSERT INTO fotos (cliente_id, data, foto_frente, foto_costas, foto_perfil) VALUES (?,?,?,?,?)",
-              (cliente_id, data, frente, costas, perfil))
+    c.execute('''INSERT INTO avaliacao_fisica 
+        (cliente_id, data, peso, altura, torax, cintura, abdomen, quadril,
+         braco_direito, braco_esquerdo, coxa_direita, coxa_esquerda,
+         panturrilha_direita, panturrilha_esquerda, triceps, subescapular,
+         peitoral, axilar_media, suprailiaca, abdominal, coxa, biceps, perna, observacoes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', dados)
     conn.commit()
     conn.close()
+
+def carregar_avaliacoes_fisicas(cliente_id):
+    conn = sqlite3.connect('clientes.db')
+    df = pd.read_sql(f"SELECT * FROM avaliacao_fisica WHERE cliente_id={cliente_id} ORDER BY data DESC", conn)
+    conn.close()
+    return df
+
+def salvar_avaliacao_postural(dados):
+    conn = sqlite3.connect('clientes.db')
+    c = conn.cursor()
+    c.execute('''INSERT INTO avaliacao_postural 
+        (cliente_id, data, vista_anterior, vista_posterior, vista_lateral_direita,
+         vista_lateral_esquerda, cabeca, ombros, coluna, quadril, joelhos, pes, observacoes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)''', dados)
+    conn.commit()
+    conn.close()
+
+def carregar_avaliacoes_posturais(cliente_id):
+    conn = sqlite3.connect('clientes.db')
+    df = pd.read_sql(f"SELECT * FROM avaliacao_postural WHERE cliente_id={cliente_id} ORDER BY data DESC", conn)
+    conn.close()
+    return df
+
+def salvar_foto_db(cliente_id, data, tipo, foto_bytes):
+    conn = sqlite3.connect('clientes.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO fotos (cliente_id, data, tipo, foto) VALUES (?,?,?,?)",
+              (cliente_id, data, tipo, foto_bytes))
+    conn.commit()
+    conn.close()
+
+def carregar_fotos(cliente_id):
+    conn = sqlite3.connect('clientes.db')
+    df = pd.read_sql(f"SELECT * FROM fotos WHERE cliente_id={cliente_id} ORDER BY data DESC", conn)
+    conn.close()
+    return df
+
+# -----------------------------
+# FUNÇÕES DE CÁLCULO - PROTOCOLOS
+# -----------------------------
+def calcular_percentual_gordura(dados, metodo="pollock_7"):
+    """
+    Calcula percentual de gordura usando diferentes protocolos
+    """
+    idade = dados.get('idade', 30)
+    sexo = dados.get('sexo', 'M')  # M ou F
+    resultado = {}
+    
+    # Soma das dobras
+    soma_7 = sum([dados.get(d, 0) for d in ['triceps', 'subescapular', 'peitoral', 
+                                              'axilar_media', 'suprailiaca', 'abdominal', 'coxa']])
+    soma_3_peitoral = sum([dados.get(d, 0) for d in ['peitoral', 'abdominal', 'coxa']])
+    
+    if sexo == 'M':
+        # Protocolo Pollock 7 dobras (1975)
+        dc_7 = 1.112 - (0.00043499 * soma_7) + (0.00000055 * soma_7**2) - (0.00028826 * idade)
+        resultado['Pollock 7 Dobras'] = round((4.95 / dc_7 - 4.50) * 100, 2)
+        
+        # Protocolo Pollock 3 dobras (Peitoral, Abdominal, Coxa)
+        dc_3 = 1.10938 - (0.0008267 * soma_3_peitoral) + (0.0000016 * soma_3_peitoral**2) - (0.0002574 * idade)
+        resultado['Pollock 3 Dobras'] = round((4.95 / dc_3 - 4.50) * 100, 2)
+        
+        # Protocolo Guedes 3 dobras
+        soma_guedes = sum([dados.get(d, 0) for d in ['triceps', 'suprailiaca', 'abdominal']])
+        dc_guedes = 1.17136 - (0.06706 * (soma_guedes / 10))
+        resultado['Guedes (3 Dobras)'] = round((4.95 / dc_guedes - 4.50) * 100, 2)
+        
+        # Protocolo Faulkner (4 dobras)
+        soma_faulkner = sum([dados.get(d, 0) for d in ['triceps', 'subescapular', 'suprailiaca', 'abdominal']])
+        resultado['Faulkner'] = round((0.153 * soma_faulkner + 5.783), 2)
+        
+    else:  # Feminino
+        dc_7 = 1.097 - (0.00046971 * soma_7) + (0.00000056 * soma_7**2) - (0.00012828 * idade)
+        resultado['Pollock 7 Dobras'] = round((5.01 / dc_7 - 4.57) * 100, 2)
+        
+        dc_3 = 1.089733 - (0.0009245 * soma_3_peitoral) + (0.0000025 * soma_3_peitoral**2) - (0.0000979 * idade)
+        resultado['Pollock 3 Dobras'] = round((5.01 / dc_3 - 4.57) * 100, 2)
+        
+        soma_guedes = sum([dados.get(d, 0) for d in ['triceps', 'suprailiaca', 'abdominal']])
+        resultado['Guedes (3 Dobras)'] = round((0.187 * soma_guedes + 10.73), 2)
+    
+    return resultado
+
+def classificar_gordura(percentual, sexo='M', idade=30):
+    """Classifica o percentual de gordura"""
+    if sexo == 'M':
+        if idade < 30:
+            faixas = [
+                (6, "Excelente"), (10, "Bom"), (14, "Acima da Média"),
+                (19, "Média"), (25, "Abaixo da Média"), (100, "Ruim")
+            ]
+        elif idade < 40:
+            faixas = [
+                (8, "Excelente"), (12, "Bom"), (17, "Acima da Média"),
+                (22, "Média"), (28, "Abaixo da Média"), (100, "Ruim")
+            ]
+        elif idade < 50:
+            faixas = [
+                (10, "Excelente"), (15, "Bom"), (20, "Acima da Média"),
+                (25, "Média"), (30, "Abaixo da Média"), (100, "Ruim")
+            ]
+        else:
+            faixas = [
+                (12, "Excelente"), (17, "Bom"), (22, "Acima da Média"),
+                (27, "Média"), (32, "Abaixo da Média"), (100, "Ruim")
+            ]
+    else:
+        if idade < 30:
+            faixas = [
+                (12, "Excelente"), (16, "Bom"), (20, "Acima da Média"),
+                (25, "Média"), (31, "Abaixo da Média"), (100, "Ruim")
+            ]
+        elif idade < 40:
+            faixas = [
+                (14, "Excelente"), (18, "Bom"), (23, "Acima da Média"),
+                (28, "Média"), (33, "Abaixo da Média"), (100, "Ruim")
+            ]
+        else:
+            faixas = [
+                (16, "Excelente"), (20, "Bom"), (25, "Acima da Média"),
+                (30, "Média"), (35, "Abaixo da Média"), (100, "Ruim")
+            ]
+    
+    for limite, classificacao in faixas:
+        if percentual <= limite:
+            return classificacao
+    return "Não classificado"
+
+def calcular_imc(peso, altura):
+    """Calcula IMC"""
+    if altura > 0:
+        imc = peso / (altura ** 2)
+        return round(imc, 2)
+    return 0
+
+def classificar_imc(imc):
+    """Classifica IMC"""
+    if imc < 18.5:
+        return "Abaixo do Peso"
+    elif imc < 24.9:
+        return "Peso Normal"
+    elif imc < 29.9:
+        return "Sobrepeso"
+    elif imc < 34.9:
+        return "Obesidade Grau I"
+    elif imc < 39.9:
+        return "Obesidade Grau II"
+    else:
+        return "Obesidade Grau III"
+
+def calcular_rcq(cintura, quadril):
+    """Calcula Relação Cintura-Quadril"""
+    if quadril > 0:
+        return round(cintura / quadril, 2)
+    return 0
+
+def classificar_rcq(rcq, sexo='M'):
+    """Classifica RCQ"""
+    if sexo == 'M':
+        if rcq < 0.85:
+            return "Risco Baixo"
+        elif rcq < 0.90:
+            return "Risco Moderado"
+        elif rcq < 0.95:
+            return "Risco Alto"
+        else:
+            return "Risco Muito Alto"
+    else:
+        if rcq < 0.75:
+            return "Risco Baixo"
+        elif rcq < 0.80:
+            return "Risco Moderado"
+        elif rcq < 0.85:
+            return "Risco Alto"
+        else:
+            return "Risco Muito Alto"
 
 # -----------------------------
 # FUNÇÕES DE GERAÇÃO DE TREINO
@@ -442,27 +733,16 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
     for semana in range(1, semanas + 1):
         idx_fase = (semana - 1) % 4
         fase = fases[idx_fase]
-        
         ciclo = (semana - 1) // 4
         fator_progressao = 1.0 + (ciclo * 0.025)
-        
         registros_semana = []
         
         for dia in range(1, frequencia + 1):
             dia_info = dias_treino.get(dia, dias_treino[1])
-            
-            # Cabeçalho do dia
             registros_semana.append({
-                'ORDEM': '',
-                'DIA': f'▶ DIA {dia}',
-                'TIPO': '',
-                'EXERCÍCIO': dia_info['nome'],
-                'SÉRIES': '',
-                'REPETIÇÕES': '',
-                '% 1RM': f'FASE: {fase["foco"].upper()}',
-                'CARGA (kg)': '',
-                'DESCANSO': '',
-                'OBSERVAÇÃO': ''
+                'DIA': f'▶ DIA {dia}', 'TIPO': '', 'EXERCÍCIO': dia_info['nome'],
+                'SÉRIES': '', 'REPETIÇÕES': '', '% 1RM': f'FASE: {fase["foco"].upper()}',
+                'CARGA (kg)': '', 'DESCANSO': '', 'OBSERVAÇÃO': ''
             })
             
             for ex in dia_info['exercicios']:
@@ -471,16 +751,11 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                 base = ex['base']
                 fator = ex['fator']
                 
-                if base == 'agach':
-                    carga_base = agach
-                elif base == 'sup':
-                    carga_base = sup
-                elif base == 'terra':
-                    carga_base = terra
-                elif base == 'pegada':
-                    carga_base = 0
-                else:
-                    carga_base = agach * 0.5
+                if base == 'agach': carga_base = agach
+                elif base == 'sup': carga_base = sup
+                elif base == 'terra': carga_base = terra
+                elif base == 'pegada': carga_base = 0
+                else: carga_base = agach * 0.5
                 
                 if tipo == 'PRINCIPAL':
                     intensidade_final = fase['intensidade']
@@ -491,10 +766,7 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                     intensidade_final = fase['intensidade'] * 0.85
                     series = max(2, int((fase['series_base'] - 1) * fator_volume))
                     rep_range_split = fase['rep_range'].split('-')
-                    if len(rep_range_split) == 2:
-                        repeticoes = f"{int(rep_range_split[0]) + 2}-{int(rep_range_split[1]) + 2}"
-                    else:
-                        repeticoes = str(int(fase['rep_range']) + 2)
+                    repeticoes = f"{int(rep_range_split[0]) + 2}-{int(rep_range_split[1]) + 2}" if len(rep_range_split) == 2 else str(int(fase['rep_range']) + 2)
                     descanso = '60-90s'
                 else:
                     intensidade_final = fase['intensidade'] * 0.6
@@ -502,45 +774,24 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
                     repeticoes = '12-15'
                     descanso = '45-60s'
                 
-                if carga_base > 0:
-                    carga = round(carga_base * fator * intensidade_final * fator_progressao, 1)
-                    carga = max(carga, 1.0)
-                    carga_str = f"{carga:.1f}"
-                else:
-                    carga_str = 'PESO CORPORAL'
+                carga_str = f"{max(round(carga_base * fator * intensidade_final * fator_progressao, 1), 1.0):.1f}" if carga_base > 0 else 'PESO CORPORAL'
                 
                 registros_semana.append({
-                    'ORDEM': '',
-                    'DIA': f'  {dia}',
-                    'TIPO': tipo,
-                    'EXERCÍCIO': nome_ex,
-                    'SÉRIES': series,
-                    'REPETIÇÕES': repeticoes,
+                    'DIA': f'  {dia}', 'TIPO': tipo, 'EXERCÍCIO': nome_ex,
+                    'SÉRIES': series, 'REPETIÇÕES': repeticoes,
                     '% 1RM': f"{int(intensidade_final * 100)}%",
-                    'CARGA (kg)': carga_str,
-                    'DESCANSO': descanso,
-                    'OBSERVAÇÃO': ''
+                    'CARGA (kg)': carga_str, 'DESCANSO': descanso, 'OBSERVAÇÃO': ''
                 })
             
-            # Separador entre dias
             registros_semana.append({
-                'ORDEM': '',
-                'DIA': '',
-                'TIPO': '',
-                'EXERCÍCIO': '─' * 60,
-                'SÉRIES': '',
-                'REPETIÇÕES': '',
-                '% 1RM': '',
-                'CARGA (kg)': '',
-                'DESCANSO': '',
-                'OBSERVAÇÃO': ''
+                'DIA': '', 'TIPO': '', 'EXERCÍCIO': '─' * 60,
+                'SÉRIES': '', 'REPETIÇÕES': '', '% 1RM': '',
+                'CARGA (kg)': '', 'DESCANSO': '', 'OBSERVAÇÃO': ''
             })
         
-        df_semana = pd.DataFrame(registros_semana)
-        planilhas_por_semana[f'Semana {semana:02d}'] = df_semana
+        planilhas_por_semana[f'Semana {semana:02d}'] = pd.DataFrame(registros_semana)
 
     return planilhas_por_semana
-
 
 def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
     output = BytesIO()
@@ -549,44 +800,28 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
         for nome_aba, df in planilhas_dict.items():
             aba_nome = nome_aba.replace(' ', '_')[:31]
             df.to_excel(writer, sheet_name=aba_nome, index=False)
-            
             worksheet = writer.sheets[aba_nome]
             
-            # Formatação das colunas
-            col_widths = {
-                'A': 8,   # ORDEM
-                'B': 10,  # DIA
-                'C': 18,  # TIPO
-                'D': 40,  # EXERCÍCIO
-                'E': 10,  # SÉRIES
-                'F': 14,  # REPETIÇÕES
-                'G': 12,  # % 1RM
-                'H': 14,  # CARGA (kg)
-                'I': 14,  # DESCANSO
-                'J': 20   # OBSERVAÇÃO
-            }
-            
+            col_widths = {'A': 10, 'B': 18, 'C': 40, 'D': 10, 'E': 14, 'F': 12, 'G': 14, 'H': 14, 'I': 20}
             for col_letter, width in col_widths.items():
                 worksheet.column_dimensions[col_letter].width = width
             
-            # Destacar cabeçalhos dos dias
-            from openpyxl.styles import PatternFill, Font, Alignment
-            green_fill = PatternFill(start_color='2ECC40', end_color='2ECC40', fill_type='solid')
+            from openpyxl.styles import PatternFill, Font
             purple_fill = PatternFill(start_color='6A1B9A', end_color='6A1B9A', fill_type='solid')
             dark_fill = PatternFill(start_color='1A1A1A', end_color='1A1A1A', fill_type='solid')
             
             for row in range(2, len(df) + 2):
-                cell_value = worksheet.cell(row=row, column=2).value
+                cell_value = worksheet.cell(row=row, column=1).value
                 if cell_value and str(cell_value).startswith('▶'):
-                    for col in range(1, 11):
+                    for col in range(1, 10):
                         cell = worksheet.cell(row=row, column=col)
                         cell.fill = purple_fill
                         cell.font = Font(color='7CFC00', bold=True, size=11)
                 elif cell_value and str(cell_value).startswith('  '):
-                    for col in range(1, 11):
+                    for col in range(1, 10):
                         cell = worksheet.cell(row=row, column=col)
                         cell.fill = dark_fill
-                        cell.font = Font(color='F0F0F0')
+                        cell.font = Font(color='FFFFFF')
     
     excel_data = output.getvalue()
     b64 = base64.b64encode(excel_data).decode()
@@ -617,18 +852,28 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
     '''
     return href
 
-
 # -----------------------------
 # MENU PRINCIPAL
 # -----------------------------
-menu = st.sidebar.selectbox("📋 MENU", ["Cadastro de Cliente", "Avaliação & Fotos", "Geração de Treino", "Histórico & Evolução"])
+menu = st.sidebar.selectbox("📋 MENU", [
+    "Cadastro de Cliente", 
+    "Avaliação Física", 
+    "Avaliação Postural", 
+    "Fotos Avaliativas",
+    "Geração de Treino", 
+    "Histórico & Evolução"
+])
 
+# ============================================
+# CADASTRO DE CLIENTE
+# ============================================
 if menu == "Cadastro de Cliente":
-    st.header("➕ Novo Cliente")
+    st.header("➕ NOVO CLIENTE")
     with st.form("form_cliente"):
         col1, col2 = st.columns(2)
         nome = col1.text_input("Nome completo")
         idade = col2.number_input("Idade", 12, 100, 30)
+        sexo = st.radio("Sexo", ["Masculino", "Feminino"], horizontal=True)
         nivel = st.selectbox("Nível de experiência", [
             "Iniciante (Nível 1)",
             "Básico (Nível 2)",
@@ -639,51 +884,345 @@ if menu == "Cadastro de Cliente":
         ])
         objetivo = st.selectbox("Objetivo principal", ["Hipertrofia", "Força Máxima", "Potência"])
         st.subheader("Testes de Força (1RM ou Estimado)")
-        agach = st.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
-        sup = st.number_input("Supino (kg)", 0.0, 500.0, 60.0)
-        terra = st.number_input("Terra (kg)", 0.0, 500.0, 100.0)
+        col1, col2, col3 = st.columns(3)
+        agach = col1.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
+        sup = col2.number_input("Supino (kg)", 0.0, 500.0, 60.0)
+        terra = col3.number_input("Terra (kg)", 0.0, 500.0, 100.0)
         peg_dir = st.number_input("Força de Pegada Mão Direita (kg)", 0.0, 200.0, 40.0)
         peg_esq = st.number_input("Força de Pegada Mão Esquerda (kg)", 0.0, 200.0, 38.0)
-        submitted = st.form_submit_button("Salvar Cliente")
+        submitted = st.form_submit_button("💾 SALVAR CLIENTE")
         if submitted:
             salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq)
-            st.success(f"Cliente {nome} cadastrado com sucesso!")
+            st.success(f"✅ Cliente {nome} cadastrado com sucesso!")
 
-elif menu == "Avaliação & Fotos":
-    st.header("📸 Fotos Avaliativas")
+# ============================================
+# AVALIAÇÃO FÍSICA (DOBRAS E CIRCUNFERÊNCIAS)
+# ============================================
+elif menu == "Avaliação Física":
+    st.header("📏 AVALIAÇÃO FÍSICA COMPLETA")
+    st.markdown("---")
+    
     clientes_df = carregar_clientes()
     if clientes_df.empty:
-        st.warning("Nenhum cliente cadastrado. Cadastre primeiro.")
+        st.warning("⚠️ Nenhum cliente cadastrado. Cadastre primeiro.")
     else:
-        cliente_selecionado = st.selectbox("Selecione o cliente", clientes_df['nome'].tolist())
-        id_cliente = clientes_df[clientes_df['nome'] == cliente_selecionado]['id'].values[0]
-        data_foto = st.date_input("Data da foto", datetime.now())
-        col1, col2, col3 = st.columns(3)
-        frente = col1.file_uploader("Frente", type=['jpg','jpeg','png'])
-        costas = col2.file_uploader("Costas", type=['jpg','jpeg','png'])
-        perfil = col3.file_uploader("Perfil", type=['jpg','jpeg','png'])
-        if st.button("Salvar Fotos"):
-            if not os.path.exists("fotos"):
-                os.makedirs("fotos")
-            for img, tipo in [(frente, "frente"), (costas, "costas"), (perfil, "perfil")]:
-                if img:
-                    img_pil = Image.open(img)
-                    img_pil.save(f"fotos/{cliente_selecionado}_{data_foto}_{tipo}.png")
-            st.success("Fotos salvas com sucesso!")
+        cliente_nome = st.selectbox("👤 Selecione o cliente", clientes_df['nome'])
+        id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
+        
+        tab_avaliacao = st.radio("📋 Selecione a ação", ["Nova Avaliação", "Histórico de Avaliações"], horizontal=True)
+        
+        if tab_avaliacao == "Nova Avaliação":
+            with st.form("form_avaliacao"):
+                data_av = st.date_input("📅 Data da avaliação", datetime.now())
+                
+                st.markdown("### 📊 Dados Básicos")
+                col1, col2 = st.columns(2)
+                peso = col1.number_input("Peso (kg)", 30.0, 300.0, 80.0, 0.1)
+                altura = col2.number_input("Altura (m)", 1.20, 2.50, 1.75, 0.01)
+                
+                st.markdown("### 📏 Circunferências (cm)")
+                col1, col2, col3 = st.columns(3)
+                torax = col1.number_input("Tórax", 30.0, 200.0, 95.0, 0.1)
+                cintura = col2.number_input("Cintura", 30.0, 200.0, 80.0, 0.1)
+                abdomen = col3.number_input("Abdômen", 30.0, 200.0, 85.0, 0.1)
+                
+                col1, col2, col3 = st.columns(3)
+                quadril = col1.number_input("Quadril", 30.0, 200.0, 95.0, 0.1)
+                braco_dir = col2.number_input("Braço Direito", 10.0, 80.0, 35.0, 0.1)
+                braco_esq = col3.number_input("Braço Esquerdo", 10.0, 80.0, 35.0, 0.1)
+                
+                col1, col2, col3 = st.columns(3)
+                coxa_dir = col1.number_input("Coxa Direita", 20.0, 120.0, 55.0, 0.1)
+                coxa_esq = col2.number_input("Coxa Esquerda", 20.0, 120.0, 55.0, 0.1)
+                pant_dir = col3.number_input("Panturrilha Direita", 10.0, 60.0, 37.0, 0.1)
+                pant_esq = st.number_input("Panturrilha Esquerda", 10.0, 60.0, 37.0, 0.1)
+                
+                st.markdown("### 🏥 Dobras Cutâneas (mm) - Protocolo Pollock 7 Dobras")
+                col1, col2, col3 = st.columns(3)
+                triceps = col1.number_input("Tríceps", 1.0, 80.0, 15.0, 0.1)
+                subescapular = col2.number_input("Subescapular", 1.0, 80.0, 15.0, 0.1)
+                peitoral = col3.number_input("Peitoral", 1.0, 80.0, 12.0, 0.1)
+                
+                col1, col2, col3 = st.columns(3)
+                axilar_media = col1.number_input("Axilar Média", 1.0, 80.0, 12.0, 0.1)
+                suprailiaca = col2.number_input("Supra-ilíaca", 1.0, 80.0, 15.0, 0.1)
+                abdominal = col3.number_input("Abdominal", 1.0, 80.0, 20.0, 0.1)
+                coxa = st.number_input("Coxa", 1.0, 80.0, 18.0, 0.1)
+                
+                st.markdown("### 💪 Dobras Adicionais")
+                col1, col2 = st.columns(2)
+                biceps = col1.number_input("Bíceps", 1.0, 80.0, 10.0, 0.1)
+                perna = col2.number_input("Perna", 1.0, 80.0, 15.0, 0.1)
+                
+                observacoes = st.text_area("Observações")
+                
+                submitted_av = st.form_submit_button("💾 SALVAR AVALIAÇÃO")
+                
+                if submitted_av:
+                    dados_av = (
+                        id_cliente, str(data_av), peso, altura, torax, cintura, abdomen, quadril,
+                        braco_dir, braco_esq, coxa_dir, coxa_esq, pant_dir, pant_esq,
+                        triceps, subescapular, peitoral, axilar_media, suprailiaca, abdominal, coxa,
+                        biceps, perna, observacoes
+                    )
+                    salvar_avaliacao_fisica(dados_av)
+                    
+                    # Calcular e mostrar resultados
+                    dados_calc = {
+                        'idade': 30, 'sexo': 'M', 'peso': peso, 'altura': altura,
+                        'cintura': cintura, 'quadril': quadril,
+                        'triceps': triceps, 'subescapular': subescapular,
+                        'peitoral': peitoral, 'axilar_media': axilar_media,
+                        'suprailiaca': suprailiaca, 'abdominal': abdominal, 'coxa': coxa
+                    }
+                    
+                    st.success("✅ Avaliação salva com sucesso!")
+                    st.markdown("---")
+                    st.subheader("📊 RESULTADOS DA AVALIAÇÃO")
+                    
+                    # IMC
+                    imc = calcular_imc(peso, altura)
+                    col1, col2, col3, col4 = st.columns(4)
+                    col1.metric("IMC", f"{imc:.1f}", classificar_imc(imc))
+                    
+                    # RCQ
+                    rcq = calcular_rcq(cintura, quadril)
+                    col2.metric("RCQ", f"{rcq:.2f}", classificar_rcq(rcq, 'M'))
+                    
+                    # Percentual de gordura
+                    resultados = calcular_percentual_gordura(dados_calc)
+                    for metodo, perc in resultados.items():
+                        col3.metric(metodo, f"{perc:.1f}%", classificar_gordura(perc))
+                        break
+                    
+                    # Tabela completa de resultados
+                    st.markdown("### 📈 Percentual de Gordura - Todos os Protocolos")
+                    df_resultados = pd.DataFrame([
+                        {'Protocolo': k, 'Percentual (%)': v, 'Classificação': classificar_gordura(v)}
+                        for k, v in resultados.items()
+                    ])
+                    st.dataframe(df_resultados, use_container_width=True, hide_index=True)
+        
+        else:  # Histórico
+            st.subheader("📊 Histórico de Avaliações")
+            df_avaliacoes = carregar_avaliacoes_fisicas(id_cliente)
+            
+            if df_avaliacoes.empty:
+                st.info("Nenhuma avaliação física encontrada para este cliente.")
+            else:
+                for idx, av in df_avaliacoes.iterrows():
+                    with st.expander(f"📅 {av['data']} - Peso: {av['peso']}kg | Altura: {av['altura']}m"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("**Circunferências:**")
+                            st.write(f"Tórax: {av['torax']}cm | Cintura: {av['cintura']}cm | Abdômen: {av['abdomen']}cm")
+                            st.write(f"Quadril: {av['quadril']}cm | Braço Dir: {av['braco_direito']}cm | Braço Esq: {av['braco_esquerdo']}cm")
+                            st.write(f"Coxa Dir: {av['coxa_direita']}cm | Coxa Esq: {av['coxa_esquerda']}cm")
+                        with col2:
+                            st.markdown("**Dobras Cutâneas:**")
+                            st.write(f"Tríceps: {av['triceps']}mm | Subescapular: {av['subescapular']}mm")
+                            st.write(f"Peitoral: {av['peitoral']}mm | Axilar Média: {av['axilar_media']}mm")
+                            st.write(f"Supra-ilíaca: {av['suprailiaca']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
+                        
+                        if av['observacoes']:
+                            st.markdown(f"**Observações:** {av['observacoes']}")
 
+# ============================================
+# AVALIAÇÃO POSTURAL
+# ============================================
+elif menu == "Avaliação Postural":
+    st.header("🏥 AVALIAÇÃO POSTURAL")
+    st.markdown("---")
+    
+    clientes_df = carregar_clientes()
+    if clientes_df.empty:
+        st.warning("⚠️ Nenhum cliente cadastrado.")
+    else:
+        cliente_nome = st.selectbox("👤 Selecione o cliente", clientes_df['nome'])
+        id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
+        
+        tab_postural = st.radio("📋 Selecione a ação", ["Nova Avaliação Postural", "Histórico"], horizontal=True)
+        
+        if tab_postural == "Nova Avaliação Postural":
+            with st.form("form_postural"):
+                data_postural = st.date_input("📅 Data da avaliação", datetime.now())
+                
+                st.markdown("### 👁️ Vistas")
+                col1, col2 = st.columns(2)
+                vista_anterior = col1.selectbox("Vista Anterior", [
+                    "Normal", "Cabeça inclinada D", "Cabeça inclinada E",
+                    "Ombro D elevado", "Ombro E elevado", "Escoliose aparente"
+                ])
+                vista_posterior = col2.selectbox("Vista Posterior", [
+                    "Normal", "Escápula alada D", "Escápula alada E",
+                    "Escoliose torácica", "Escoliose lombar", "Diferença altura quadril"
+                ])
+                
+                col1, col2 = st.columns(2)
+                vista_lat_dir = col1.selectbox("Vista Lateral Direita", [
+                    "Normal", "Cabeça anteriorizada", "Hipercifose torácica",
+                    "Hiperlordose lombar", "Joelhos recurvatum"
+                ])
+                vista_lat_esq = col2.selectbox("Vista Lateral Esquerda", [
+                    "Normal", "Cabeça anteriorizada", "Hipercifose torácica",
+                    "Hiperlordose lombar", "Joelhos recurvatum"
+                ])
+                
+                st.markdown("### 🔍 Análise Segmentar")
+                col1, col2 = st.columns(2)
+                cabeca = col1.selectbox("Cabeça/Pescoço", [
+                    "Alinhada", "Anteriorizada", "Inclinada D", "Inclinada E", "Rotação D", "Rotação E"
+                ])
+                ombros = col2.selectbox("Ombros", [
+                    "Alinhados", "Protusos", "Elevado D", "Elevado E", "Desnível"
+                ])
+                
+                col1, col2 = st.columns(2)
+                coluna = col1.selectbox("Coluna Vertebral", [
+                    "Alinhada", "Hipercifose", "Hiperlordose", "Escoliose torácica D",
+                    "Escoliose torácica E", "Retificação"
+                ])
+                quadril = col2.selectbox("Quadril", [
+                    "Alinhado", "Anteversão", "Retroversão", "Elevado D", "Elevado E"
+                ])
+                
+                col1, col2 = st.columns(2)
+                joelhos = col1.selectbox("Joelhos", [
+                    "Alinhados", "Valgo D", "Valgo E", "Varo D", "Varo E", "Recurvatum"
+                ])
+                pes = col2.selectbox("Pés", [
+                    "Normais", "Plano D", "Plano E", "Cavo D", "Cavo E", "Pronado", "Supinado"
+                ])
+                
+                observacoes_postural = st.text_area("Observações detalhadas")
+                
+                submitted_postural = st.form_submit_button("💾 SALVAR AVALIAÇÃO POSTURAL")
+                
+                if submitted_postural:
+                    dados_postural = (
+                        id_cliente, str(data_postural), vista_anterior, vista_posterior,
+                        vista_lat_dir, vista_lat_esq, cabeca, ombros, coluna, quadril,
+                        joelhos, pes, observacoes_postural
+                    )
+                    salvar_avaliacao_postural(dados_postural)
+                    st.success("✅ Avaliação postural salva com sucesso!")
+                    
+                    # Resumo da avaliação
+                    st.markdown("---")
+                    st.subheader("📋 Resumo da Avaliação Postural")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Vistas:**")
+                        st.write(f"Anterior: {vista_anterior}")
+                        st.write(f"Posterior: {vista_posterior}")
+                        st.write(f"Lateral Dir: {vista_lat_dir}")
+                        st.write(f"Lateral Esq: {vista_lat_esq}")
+                    with col2:
+                        st.markdown("**Segmentos:**")
+                        st.write(f"Cabeça: {cabeca}")
+                        st.write(f"Ombros: {ombros}")
+                        st.write(f"Coluna: {coluna}")
+                        st.write(f"Quadril: {quadril}")
+                        st.write(f"Joelhos: {joelhos}")
+                        st.write(f"Pés: {pes}")
+        
+        else:  # Histórico
+            st.subheader("📊 Histórico de Avaliações Posturais")
+            df_postural = carregar_avaliacoes_posturais(id_cliente)
+            
+            if df_postural.empty:
+                st.info("Nenhuma avaliação postural encontrada.")
+            else:
+                for idx, av in df_postural.iterrows():
+                    with st.expander(f"📅 {av['data']}"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Vista Anterior:** {av['vista_anterior']}")
+                            st.write(f"**Vista Posterior:** {av['vista_posterior']}")
+                            st.write(f"**Cabeça:** {av['cabeca']}")
+                            st.write(f"**Ombros:** {av['ombros']}")
+                        with col2:
+                            st.write(f"**Coluna:** {av['coluna']}")
+                            st.write(f"**Quadril:** {av['quadril']}")
+                            st.write(f"**Joelhos:** {av['joelhos']}")
+                            st.write(f"**Pés:** {av['pes']}")
+                        if av['observacoes']:
+                            st.markdown(f"**Observações:** {av['observacoes']}")
+
+# ============================================
+# FOTOS AVALIATIVAS
+# ============================================
+elif menu == "Fotos Avaliativas":
+    st.header("📸 FOTOS AVALIATIVAS")
+    st.markdown("---")
+    
+    clientes_df = carregar_clientes()
+    if clientes_df.empty:
+        st.warning("⚠️ Nenhum cliente cadastrado.")
+    else:
+        cliente_nome = st.selectbox("👤 Selecione o cliente", clientes_df['nome'])
+        id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
+        
+        tab_fotos = st.radio("📋 Selecione a ação", ["Nova Foto", "Galeria de Fotos"], horizontal=True)
+        
+        if tab_fotos == "Nova Foto":
+            data_foto = st.date_input("📅 Data da foto", datetime.now())
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.markdown("**Frente**")
+                frente = st.file_uploader("Foto Frente", type=['jpg','jpeg','png'], key="frente")
+                if frente:
+                    st.image(frente, caption="Prévia - Frente", width=200)
+            
+            with col2:
+                st.markdown("**Costas**")
+                costas = st.file_uploader("Foto Costas", type=['jpg','jpeg','png'], key="costas")
+                if costas:
+                    st.image(costas, caption="Prévia - Costas", width=200)
+            
+            with col3:
+                st.markdown("**Perfil**")
+                perfil = st.file_uploader("Foto Perfil", type=['jpg','jpeg','png'], key="perfil")
+                if perfil:
+                    st.image(perfil, caption="Prévia - Perfil", width=200)
+            
+            if st.button("💾 SALVAR FOTOS", type="primary"):
+                for img, tipo in [(frente, "Frente"), (costas, "Costas"), (perfil, "Perfil")]:
+                    if img:
+                        img_bytes = img.read()
+                        salvar_foto_db(id_cliente, str(data_foto), tipo, img_bytes)
+                st.success("✅ Fotos salvas com sucesso!")
+        
+        else:  # Galeria
+            st.subheader("🖼️ Galeria de Fotos")
+            df_fotos = carregar_fotos(id_cliente)
+            
+            if df_fotos.empty:
+                st.info("Nenhuma foto encontrada.")
+            else:
+                datas_unicas = df_fotos['data'].unique()
+                for data in datas_unicas:
+                    with st.expander(f"📅 {data}", expanded=True):
+                        fotos_data = df_fotos[df_fotos['data'] == data]
+                        cols = st.columns(3)
+                        for i, (_, foto) in enumerate(fotos_data.iterrows()):
+                            with cols[i % 3]:
+                                st.image(foto['foto'], caption=f"{foto['tipo']}", width=250)
+
+# ============================================
+# GERAÇÃO DE TREINO
+# ============================================
 elif menu == "Geração de Treino":
     st.header("📋 GERAR PLANILHA DE PERIODIZAÇÃO ONDULATÓRIA")
     st.markdown("---")
     
     clientes_df = carregar_clientes()
     if clientes_df.empty:
-        st.warning("⚠️ Nenhum cliente cadastrado. Vá ao menu 'Cadastro de Cliente' primeiro.")
+        st.warning("⚠️ Nenhum cliente cadastrado.")
     else:
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            cliente_nome = st.selectbox("👤 Escolha o cliente", clientes_df['nome'])
-        
+        cliente_nome = st.selectbox("👤 Escolha o cliente", clientes_df['nome'])
         id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
         cliente = carregar_cliente(id_cliente)
         
@@ -698,19 +1237,9 @@ elif menu == "Geração de Treino":
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                semanas = st.select_slider(
-                    "📅 Semanas de treino",
-                    options=[4, 8, 12, 16],
-                    value=4,
-                    help="Período total do programa"
-                )
+                semanas = st.select_slider("📅 Semanas de treino", options=[4, 8, 12, 16], value=4)
             with col2:
-                freq = st.radio(
-                    "📆 Dias por semana",
-                    options=[3, 4, 5],
-                    horizontal=True,
-                    help="Frequência semanal de treinos"
-                )
+                freq = st.radio("📆 Dias por semana", options=[3, 4, 5], horizontal=True)
             with col3:
                 st.markdown("<br>", unsafe_allow_html=True)
                 gerar = st.button("🚀 GERAR PLANILHA", use_container_width=True, type="primary")
@@ -719,60 +1248,61 @@ elif menu == "Geração de Treino":
                 with st.spinner(f"Gerando periodização para {semanas} semanas..."):
                     planilhas = gerar_planilha_ondulatoria(cliente, semanas=semanas, frequencia=freq)
                 
-                st.success(f"✅ Planilha gerada com sucesso! {len(planilhas)} semanas programadas.")
-                
+                st.success(f"✅ Planilha gerada! {len(planilhas)} semanas programadas.")
                 st.markdown(get_table_download_link(planilhas, cliente_nome), unsafe_allow_html=True)
                 
                 st.markdown("---")
-                st.subheader("📊 VISUALIZAÇÃO PRÉVIA POR SEMANA")
-                
+                st.subheader("📊 VISUALIZAÇÃO PRÉVIA")
                 tabs = st.tabs(list(planilhas.keys()))
                 
                 for i, (nome_semana, df_semana) in enumerate(planilhas.items()):
                     with tabs[i]:
                         st.markdown(f"### 🟢 {nome_semana.upper()}")
-                        
-                        # Filtra apenas linhas com exercícios (remove separadores)
                         df_display = df_semana[df_semana['EXERCÍCIO'].str.contains('─') == False]
-                        
-                        # Agrupa por dia
                         dias_unicos = df_display[df_display['DIA'].str.startswith('▶', na=False)]['DIA'].tolist()
                         
                         for dia_header in dias_unicos:
-                            dia_num = dia_header.split('DIA ')[1]
                             dia_nome = df_display[df_display['DIA'] == dia_header]['EXERCÍCIO'].values[0]
-                            
                             with st.expander(f"📍 {dia_header} - {dia_nome}", expanded=True):
-                                # Pega exercícios deste dia
                                 idx_inicio = df_display[df_display['DIA'] == dia_header].index[0]
                                 idx_dias_seguintes = df_display[df_display['DIA'].str.startswith('▶', na=False)].index
                                 idx_fim = idx_dias_seguintes[idx_dias_seguintes > idx_inicio].min() if any(idx_dias_seguintes > idx_inicio) else len(df_display)
-                                
                                 df_dia = df_display.iloc[idx_inicio+1:idx_fim]
                                 df_dia = df_dia[df_dia['EXERCÍCIO'] != '']
                                 
                                 if not df_dia.empty:
                                     st.dataframe(
                                         df_dia[['TIPO', 'EXERCÍCIO', 'SÉRIES', 'REPETIÇÕES', '% 1RM', 'CARGA (kg)', 'DESCANSO']],
-                                        use_container_width=True,
-                                        hide_index=True
+                                        use_container_width=True, hide_index=True
                                     )
 
+# ============================================
+# HISTÓRICO & EVOLUÇÃO
+# ============================================
 elif menu == "Histórico & Evolução":
-    st.header("📈 Histórico do Cliente")
+    st.header("📈 HISTÓRICO DO CLIENTE")
     clientes_df = carregar_clientes()
     if clientes_df.empty:
-        st.warning("Nenhum cliente cadastrado.")
+        st.warning("⚠️ Nenhum cliente cadastrado.")
     else:
-        nome = st.selectbox("Cliente", clientes_df['nome'])
+        nome = st.selectbox("👤 Selecione o cliente", clientes_df['nome'])
         cliente = carregar_cliente(int(clientes_df[clientes_df['nome']==nome]['id'].values[0]))
+        
+        st.markdown("### 🏋️ Força Máxima (1RM)")
         col1, col2, col3 = st.columns(3)
-        col1.metric("Agachamento 1RM", f"{cliente['agachamento_1rm']} kg")
-        col2.metric("Supino 1RM", f"{cliente['supino_1rm']} kg")
-        col3.metric("Terra 1RM", f"{cliente['terra_1rm']} kg")
-        st.info("Gráficos de evolução serão disponibilizados em breve.")
+        col1.metric("Agachamento", f"{cliente['agachamento_1rm']} kg")
+        col2.metric("Supino", f"{cliente['supino_1rm']} kg")
+        col3.metric("Terra", f"{cliente['terra_1rm']} kg")
+        
+        col1, col2 = st.columns(2)
+        col1.metric("Pegada Direita", f"{cliente['pegada_direita']} kg")
+        col2.metric("Pegada Esquerda", f"{cliente['pegada_esquerda']} kg")
+        
+        st.info("📊 Gráficos de evolução e comparativos serão disponibilizados em breve.")
 
-# Rodapé
+# ============================================
+# RODAPÉ
+# ============================================
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"""
 <div style="
