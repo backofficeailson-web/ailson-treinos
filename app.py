@@ -7,6 +7,7 @@ from PIL import Image
 import io
 import base64
 import random
+from io import BytesIO
 
 # -----------------------------
 # CONFIGURAÇÃO DA PÁGINA
@@ -138,38 +139,33 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     terra = cliente['terra_1rm']
 
     if objetivo == "Hipertrofia":
-        rep_schemes_base = [
-            {'series':3, 'reps':10, 'intensidade':0.65},
-            {'series':4, 'reps':8, 'intensidade':0.70},
-            {'series':5, 'reps':5, 'intensidade':0.78},
-            {'series':3, 'reps':12, 'intensidade':0.60}
+        rep_schemes = [
+            {'semana':1, 'series':3, 'reps':10, 'intensidade':0.65},
+            {'semana':2, 'series':4, 'reps':8, 'intensidade':0.70},
+            {'semana':3, 'series':5, 'reps':5, 'intensidade':0.78},
+            {'semana':4, 'series':3, 'reps':12, 'intensidade':0.60}
         ]
     elif objetivo == "Força Máxima":
-        rep_schemes_base = [
-            {'series':4, 'reps':6, 'intensidade':0.80},
-            {'series':5, 'reps':4, 'intensidade':0.85},
-            {'series':3, 'reps':3, 'intensidade':0.90},
-            {'series':5, 'reps':2, 'intensidade':0.93}
+        rep_schemes = [
+            {'semana':1, 'series':4, 'reps':6, 'intensidade':0.80},
+            {'semana':2, 'series':5, 'reps':4, 'intensidade':0.85},
+            {'semana':3, 'series':3, 'reps':3, 'intensidade':0.90},
+            {'semana':4, 'series':5, 'reps':2, 'intensidade':0.93}
         ]
-    else:  # Potência
-        rep_schemes_base = [
-            {'series':6, 'reps':3, 'intensidade':0.50},
-            {'series':8, 'reps':2, 'intensidade':0.55},
-            {'series':5, 'reps':3, 'intensidade':0.60},
-            {'series':10, 'reps':1, 'intensidade':0.70}
+    else:
+        rep_schemes = [
+            {'semana':1, 'series':6, 'reps':3, 'intensidade':0.50},
+            {'semana':2, 'series':8, 'reps':2, 'intensidade':0.55},
+            {'semana':3, 'series':5, 'reps':3, 'intensidade':0.60},
+            {'semana':4, 'series':10, 'reps':1, 'intensidade':0.70}
         ]
 
     planilha = []
     for semana in range(1, semanas+1):
-        # Calcular ciclo atual (0-based)
-        ciclo = (semana - 1) // 4
-        indice_semana = (semana - 1) % 4
-        scheme_base = rep_schemes_base[indice_semana]
-
-        # Progressão: aumentar intensidade em 2% por ciclo
-        fator_progressao = 1 + (ciclo * 0.02)
-        intensidade = round(scheme_base['intensidade'] * fator_progressao, 2)
-
+        # Repetir o ciclo de periodização para semanas > 4
+        idx_scheme = (semana - 1) % 4
+        scheme = rep_schemes[idx_scheme]
+        
         for dia in range(1, frequencia+1):
             if dia == 1:
                 ex_principais = list(EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'])
@@ -193,34 +189,29 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 else:
                     carga_base = agach * 0.5
 
-                carga = round(carga_base * intensidade, 2)
+                carga = round(carga_base * scheme['intensidade'], 2)
                 planilha.append({
                     'Semana': semana,
                     'Dia': dia,
                     'Exercício': ex,
-                    'Séries': scheme_base['series'],
-                    'Repetições': scheme_base['reps'],
-                    '% 1RM': int(intensidade*100),
+                    'Séries': scheme['series'],
+                    'Repetições': scheme['reps'],
+                    '% 1RM': int(scheme['intensidade']*100),
                     'Carga (kg)': carga
                 })
 
     df = pd.DataFrame(planilha)
+    return df
 
 def get_table_download_link(df):
-    """Generates a link allowing the data in a given panda dataframe to be downloaded
-    in:  dataframe
-    out: href string
-    """
-    import base64
-    from io import BytesIO
-    
+    """Gera link de download para planilha Excel"""
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='openpyxl')  # Fixed typo: 'twrite' not 'twritte'
-    df.to_excel(writer, index=False, sheet_name='Sheet1')
-    writer.close()  # Don't forget to close the writer
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Treino')
+    
     excel_data = output.getvalue()
     b64 = base64.b64encode(excel_data).decode()
-    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treinos.xlsx">Download Excel File</a>'
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
     return href
 
 menu = st.sidebar.selectbox("Menu", ["Cadastro de Cliente", "Avaliação & Fotos", "Geração de Treino", "Histórico & Evolução"])
@@ -306,4 +297,4 @@ elif menu == "Histórico & Evolução":
         st.info("Gráficos de evolução serão disponibilizados em breve.")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("© 2025 Ailson Personal Trainer")
+st.sidebar.markdown("© 2026 Ailson Personal Trainer")
