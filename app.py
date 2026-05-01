@@ -30,23 +30,21 @@ CINZA_ESCURO = "#1E1E1E"
 CINZA_MEDIO = "#2D2D2D"
 BRANCO = "#FFFFFF"
 AMARELO_ALERTA = "#FFD700"
+LARANJA = "#FF6B35"
 
-# CSS CORRIGIDO - Removendo seletores problemáticos
+# CSS
 st.markdown(f"""
 <style>
-    /* Fundo principal */
     .stApp {{
         background: linear-gradient(135deg, {PRETO} 0%, {VERDE_ESCURO} 100%);
         background-attachment: fixed;
     }}
     
-    /* Sidebar */
     section[data-testid="stSidebar"] {{
         background: linear-gradient(180deg, {PRETO} 0%, {ROXO_ESCURO} 100%);
         border-right: 3px solid {VERDE_HULK};
     }}
     
-    /* Cabeçalhos */
     h1, h2, h3, h4, h5, h6 {{
         color: {VERDE_CLARO} !important;
         font-weight: 900 !important;
@@ -65,7 +63,6 @@ st.markdown(f"""
         padding-left: 15px;
     }}
     
-    /* Botões */
     .stButton > button {{
         background: linear-gradient(135deg, {VERDE_HULK} 0%, {VERDE_ESCURO} 100%);
         color: {BRANCO} !important;
@@ -82,7 +79,6 @@ st.markdown(f"""
         color: {PRETO} !important;
     }}
     
-    /* Métricas */
     [data-testid="stMetric"] {{
         background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {VERDE_ESCURO} 100%);
         padding: 15px !important;
@@ -90,7 +86,6 @@ st.markdown(f"""
         border: 2px solid {VERDE_HULK} !important;
     }}
     
-    /* Formulários */
     [data-testid="stForm"] {{
         background: linear-gradient(135deg, {CINZA_ESCURO} 0%, {CINZA_MEDIO} 100%);
         padding: 20px !important;
@@ -98,7 +93,6 @@ st.markdown(f"""
         border: 2px solid {VERDE_HULK} !important;
     }}
     
-    /* Expander */
     .streamlit-expanderHeader {{
         background: linear-gradient(135deg, {ROXO_ESCURO} 0%, {VERDE_ESCURO} 100%);
         color: {VERDE_CLARO} !important;
@@ -113,7 +107,6 @@ st.markdown(f"""
         border-radius: 0 0 8px 8px;
     }}
     
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {{
         background-color: {CINZA_ESCURO};
         border-radius: 10px 10px 0 0;
@@ -125,12 +118,6 @@ st.markdown(f"""
         color: {PRETO} !important;
     }}
     
-    /* Alertas */
-    .stAlert {{
-        border-radius: 10px !important;
-    }}
-    
-    /* Separadores */
     hr {{
         border: none !important;
         height: 2px !important;
@@ -138,17 +125,9 @@ st.markdown(f"""
         margin: 20px 0 !important;
     }}
     
-    /* Scrollbar */
-    ::-webkit-scrollbar {{
-        width: 10px;
-    }}
-    ::-webkit-scrollbar-track {{
-        background: {PRETO};
-    }}
-    ::-webkit-scrollbar-thumb {{
-        background: {VERDE_HULK};
-        border-radius: 5px;
-    }}
+    ::-webkit-scrollbar {{ width: 10px; }}
+    ::-webkit-scrollbar-track {{ background: {PRETO}; }}
+    ::-webkit-scrollbar-thumb {{ background: {VERDE_HULK}; border-radius: 5px; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,7 +163,10 @@ def init_db():
                     terra_1rm REAL,
                     pegada_direita REAL,
                     pegada_esquerda REAL,
-                    historico TEXT
+                    historico TEXT,
+                    perfil_especial TEXT DEFAULT 'Nenhum',
+                    semana_gestacional INTEGER DEFAULT 0,
+                    observacoes_medicas TEXT DEFAULT ''
                 )''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_fisica (
@@ -251,17 +233,23 @@ init_db()
 # -----------------------------
 # FUNÇÕES DO BANCO DE DADOS
 # -----------------------------
-def salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq):
+def salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq, 
+                   perfil_especial="Nenhum", semana_gestacional=0, observacoes_medicas=""):
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
-    c.execute("INSERT INTO clientes (nome,idade,nivel,objetivo,agachamento_1rm,supino_1rm,terra_1rm,pegada_direita,pegada_esquerda,historico) VALUES (?,?,?,?,?,?,?,?,?,?)",
-              (nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq, ""))
+    c.execute("""INSERT INTO clientes 
+        (nome,idade,nivel,objetivo,agachamento_1rm,supino_1rm,terra_1rm,
+         pegada_direita,pegada_esquerda,historico,perfil_especial,
+         semana_gestacional,observacoes_medicas) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq, "",
+         perfil_especial, semana_gestacional, observacoes_medicas))
     conn.commit()
     conn.close()
 
 def carregar_clientes():
     conn = sqlite3.connect('clientes.db')
-    df = pd.read_sql("SELECT id, nome, nivel, objetivo FROM clientes", conn)
+    df = pd.read_sql("SELECT id, nome, nivel, objetivo, perfil_especial FROM clientes", conn)
     conn.close()
     return df
 
@@ -350,45 +338,26 @@ def calcular_percentual_gordura(dados, metodo="pollock_7"):
         
         dc_3 = 1.089733 - (0.0009245 * soma_3_peitoral) + (0.0000025 * soma_3_peitoral**2) - (0.0000979 * idade)
         resultado['Pollock 3 Dobras'] = round((5.01 / dc_3 - 4.57) * 100, 2)
-        
-        soma_guedes = sum([dados.get(d, 0) for d in ['triceps', 'suprailiaca', 'abdominal']])
-        resultado['Guedes (3 Dobras)'] = round((0.187 * soma_guedes + 10.73), 2)
     
     return resultado
 
 def classificar_gordura(percentual, sexo='M', idade=30):
     if sexo == 'M':
-        if idade < 30:
-            faixas = [(6, "Excelente"), (10, "Bom"), (14, "Acima da Média"),
-                     (19, "Média"), (25, "Abaixo da Média"), (100, "Ruim")]
-        elif idade < 40:
-            faixas = [(8, "Excelente"), (12, "Bom"), (17, "Acima da Média"),
-                     (22, "Média"), (28, "Abaixo da Média"), (100, "Ruim")]
-        elif idade < 50:
-            faixas = [(10, "Excelente"), (15, "Bom"), (20, "Acima da Média"),
-                     (25, "Média"), (30, "Abaixo da Média"), (100, "Ruim")]
-        else:
-            faixas = [(12, "Excelente"), (17, "Bom"), (22, "Acima da Média"),
-                     (27, "Média"), (32, "Abaixo da Média"), (100, "Ruim")]
+        if idade < 30: faixas = [(6, "Excelente"), (10, "Bom"), (14, "Acima da Média"), (19, "Média"), (25, "Abaixo da Média"), (100, "Ruim")]
+        elif idade < 40: faixas = [(8, "Excelente"), (12, "Bom"), (17, "Acima da Média"), (22, "Média"), (28, "Abaixo da Média"), (100, "Ruim")]
+        elif idade < 50: faixas = [(10, "Excelente"), (15, "Bom"), (20, "Acima da Média"), (25, "Média"), (30, "Abaixo da Média"), (100, "Ruim")]
+        else: faixas = [(12, "Excelente"), (17, "Bom"), (22, "Acima da Média"), (27, "Média"), (32, "Abaixo da Média"), (100, "Ruim")]
     else:
-        if idade < 30:
-            faixas = [(12, "Excelente"), (16, "Bom"), (20, "Acima da Média"),
-                     (25, "Média"), (31, "Abaixo da Média"), (100, "Ruim")]
-        elif idade < 40:
-            faixas = [(14, "Excelente"), (18, "Bom"), (23, "Acima da Média"),
-                     (28, "Média"), (33, "Abaixo da Média"), (100, "Ruim")]
-        else:
-            faixas = [(16, "Excelente"), (20, "Bom"), (25, "Acima da Média"),
-                     (30, "Média"), (35, "Abaixo da Média"), (100, "Ruim")]
+        if idade < 30: faixas = [(12, "Excelente"), (16, "Bom"), (20, "Acima da Média"), (25, "Média"), (31, "Abaixo da Média"), (100, "Ruim")]
+        elif idade < 40: faixas = [(14, "Excelente"), (18, "Bom"), (23, "Acima da Média"), (28, "Média"), (33, "Abaixo da Média"), (100, "Ruim")]
+        else: faixas = [(16, "Excelente"), (20, "Bom"), (25, "Acima da Média"), (30, "Média"), (35, "Abaixo da Média"), (100, "Ruim")]
     
     for limite, classificacao in faixas:
-        if percentual <= limite:
-            return classificacao
+        if percentual <= limite: return classificacao
     return "Não classificado"
 
 def calcular_imc(peso, altura):
-    if altura > 0:
-        return round(peso / (altura ** 2), 2)
+    if altura > 0: return round(peso / (altura ** 2), 2)
     return 0
 
 def classificar_imc(imc):
@@ -400,8 +369,7 @@ def classificar_imc(imc):
     else: return "Obesidade Grau III"
 
 def calcular_rcq(cintura, quadril):
-    if quadril > 0:
-        return round(cintura / quadril, 2)
+    if quadril > 0: return round(cintura / quadril, 2)
     return 0
 
 def classificar_rcq(rcq, sexo='M'):
@@ -416,11 +384,320 @@ def classificar_rcq(rcq, sexo='M'):
         elif rcq < 0.85: return "Risco Alto"
         else: return "Risco Muito Alto"
 
+def calcular_carga(ex, agach, sup, terra):
+    base = ex.get('base', 'agach')
+    fator = ex.get('fator', 0)
+    
+    if fator == 0:
+        return 'Peso Corporal'
+    
+    if base == 'agach': carga_base = agach
+    elif base == 'sup': carga_base = sup
+    elif base == 'terra': carga_base = terra
+    else: carga_base = agach * 0.5
+    
+    carga = round(carga_base * fator, 1)
+    return f"{carga:.1f} kg" if carga >= 1 else 'Elástico/Peso Corporal'
+
 # -----------------------------
-# FUNÇÕES DE GERAÇÃO DE TREINO
+# METODOLOGIA BEACH TENNIS
+# -----------------------------
+def gerar_treino_beach_tennis(cliente, semanas=4, frequencia=3):
+    agach = cliente['agachamento_1rm']
+    sup = cliente['supino_1rm']
+    terra = cliente['terra_1rm']
+    
+    fases_bt = [
+        {
+            'foco': 'Base e Resistência',
+            'descricao': 'Fortalecimento geral e preparação para areia',
+            'exercicios': {
+                'principal': [
+                    {'nome': 'Agachamento Goblet', 'series': 3, 'reps': '12-15', 'carga_base': 'agach', 'fator': 0.5},
+                    {'nome': 'Remada Curvada com Halteres', 'series': 3, 'reps': '12-15', 'carga_base': 'terra', 'fator': 0.4},
+                ],
+                'potencia': [
+                    {'nome': 'Arremesso de Medicine Ball (3kg)', 'series': 4, 'reps': '8-10', 'carga_base': 'agach', 'fator': 0.1},
+                    {'nome': 'Salto Vertical na Areia', 'series': 4, 'reps': '6-8', 'carga_base': 'agach', 'fator': 0.0},
+                ],
+                'mobilidade': [
+                    {'nome': 'Rotação de Tronco com Faixa Elástica', 'series': 3, 'reps': '15 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Afundo com Rotação', 'series': 3, 'reps': '10 cada lado', 'carga_base': 'agach', 'fator': 0.3},
+                ],
+                'core': [
+                    {'nome': 'Prancha com Toque no Ombro', 'series': 3, 'reps': '30s', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Russian Twist com Medicine Ball', 'series': 3, 'reps': '20', 'carga_base': 'agach', 'fator': 0.1},
+                ]
+            }
+        },
+        {
+            'foco': 'Potência e Agilidade',
+            'descricao': 'Desenvolvimento de força explosiva para sprints na areia',
+            'exercicios': {
+                'principal': [
+                    {'nome': 'Levantamento Terra Sumô', 'series': 4, 'reps': '6-8', 'carga_base': 'terra', 'fator': 0.75},
+                    {'nome': 'Supino com Halteres', 'series': 4, 'reps': '8-10', 'carga_base': 'sup', 'fator': 0.65},
+                ],
+                'potencia': [
+                    {'nome': 'Kettlebell Swing', 'series': 4, 'reps': '12', 'carga_base': 'terra', 'fator': 0.3},
+                    {'nome': 'Box Jump (caixa baixa)', 'series': 4, 'reps': '8', 'carga_base': 'agach', 'fator': 0.0},
+                ],
+                'mobilidade': [
+                    {'nome': 'Abertura de Quadril com Rotação', 'series': 3, 'reps': '12 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Mobilidade de Ombro com Bastão', 'series': 3, 'reps': '15', 'carga_base': 'sup', 'fator': 0.0},
+                ],
+                'core': [
+                    {'nome': 'Prancha Lateral com Elevação', 'series': 3, 'reps': '12 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Abdominal Bicicleta', 'series': 3, 'reps': '20', 'carga_base': 'agach', 'fator': 0.0},
+                ]
+            }
+        },
+        {
+            'foco': 'Velocidade e Reação',
+            'descricao': 'Treinos específicos para tempo de reação e deslocamento',
+            'exercicios': {
+                'principal': [
+                    {'nome': 'Stiff Unilateral', 'series': 3, 'reps': '10 cada lado', 'carga_base': 'terra', 'fator': 0.5},
+                    {'nome': 'Desenvolvimento com Halteres', 'series': 3, 'reps': '10-12', 'carga_base': 'sup', 'fator': 0.5},
+                ],
+                'potencia': [
+                    {'nome': 'Sprint na Areia com Resistência', 'series': 5, 'reps': '15m', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Deslocamento Lateral com Elástico', 'series': 4, 'reps': '10 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                ],
+                'mobilidade': [
+                    {'nome': 'Alongamento Dinâmico de Posterior', 'series': 3, 'reps': '12', 'carga_base': 'terra', 'fator': 0.0},
+                    {'nome': 'Círculos de Braço Amplos', 'series': 3, 'reps': '15 cada direção', 'carga_base': 'sup', 'fator': 0.0},
+                ],
+                'core': [
+                    {'nome': 'Prancha com Deslocamento Lateral', 'series': 3, 'reps': '8 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Escalador Cruzado', 'series': 3, 'reps': '20', 'carga_base': 'agach', 'fator': 0.0},
+                ]
+            }
+        },
+        {
+            'foco': 'Específico e Competitivo',
+            'descricao': 'Simulação de movimentos de jogo e manutenção',
+            'exercicios': {
+                'principal': [
+                    {'nome': 'Agachamento com Salto', 'series': 3, 'reps': '10', 'carga_base': 'agach', 'fator': 0.4},
+                    {'nome': 'Remada Alta', 'series': 3, 'reps': '12', 'carga_base': 'terra', 'fator': 0.4},
+                ],
+                'potencia': [
+                    {'nome': 'Arremesso Explosivo com Rotação', 'series': 4, 'reps': '8 cada lado', 'carga_base': 'agach', 'fator': 0.15},
+                    {'nome': 'Saque Simulado com Resistência', 'series': 4, 'reps': '10 cada lado', 'carga_base': 'sup', 'fator': 0.1},
+                ],
+                'mobilidade': [
+                    {'nome': 'Rotação Torácica Completa', 'series': 3, 'reps': '10 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'Alongamento de Isquiotibiais', 'series': 3, 'reps': '30s cada', 'carga_base': 'terra', 'fator': 0.0},
+                ],
+                'core': [
+                    {'nome': 'Anti-Rotação com Faixa', 'series': 3, 'reps': '12 cada lado', 'carga_base': 'agach', 'fator': 0.0},
+                    {'nome': 'V-Up (Canivete)', 'series': 3, 'reps': '15', 'carga_base': 'agach', 'fator': 0.0},
+                ]
+            }
+        }
+    ]
+    
+    planilhas_por_semana = {}
+    
+    for semana in range(1, semanas + 1):
+        idx_fase = (semana - 1) % 4
+        fase = fases_bt[idx_fase]
+        registros_semana = []
+        
+        for dia in range(1, frequencia + 1):
+            dia_nome = f"DIA {dia} - {fase['foco'].upper()}"
+            registros_semana.append({
+                'DIA': f'▶ {dia_nome}', 'TIPO': '', 'EXERCÍCIO': fase['descricao'],
+                'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+                'CARGA': '', 'OBSERVAÇÃO': 'BEACH TENNIS 🏖️'
+            })
+            
+            for cat in ['principal', 'potencia', 'mobilidade', 'core']:
+                for ex in fase['exercicios'][cat]:
+                    carga = calcular_carga(ex, agach, sup, terra)
+                    tipo_treino = cat.upper()
+                    obs = ''
+                    if cat == 'potencia': obs = 'Execução explosiva'
+                    elif cat == 'mobilidade': obs = 'Controle e amplitude'
+                    
+                    registros_semana.append({
+                        'DIA': f'  {dia}', 'TIPO': tipo_treino, 'EXERCÍCIO': ex['nome'],
+                        'SÉRIES': ex['series'], 'REPETIÇÕES': ex['reps'],
+                        '% CARGA': f"{int(ex['fator']*100)}%" if ex['fator'] > 0 else 'PC',
+                        'CARGA': carga, 'OBSERVAÇÃO': obs
+                    })
+            
+            registros_semana.append({
+                'DIA': '', 'TIPO': '', 'EXERCÍCIO': '─' * 60,
+                'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+                'CARGA': '', 'OBSERVAÇÃO': ''
+            })
+        
+        planilhas_por_semana[f'Semana {semana:02d}'] = pd.DataFrame(registros_semana)
+    
+    return planilhas_por_semana
+
+# -----------------------------
+# METODOLOGIA GESTANTES
+# -----------------------------
+def gerar_treino_gestantes(cliente, semanas=4, frequencia=3):
+    agach = cliente['agachamento_1rm'] if cliente['agachamento_1rm'] else 40
+    semana_gest = cliente['semana_gestacional'] if cliente['semana_gestacional'] else 20
+    
+    if semana_gest <= 13:
+        trimestre = 1
+        alerta = "1º TRIMESTRE - Evitar exercícios em decúbito dorsal prolongado após 5 minutos"
+    elif semana_gest <= 26:
+        trimestre = 2
+        alerta = "2º TRIMESTRE - Evitar exercícios em decúbito dorsal. Priorizar posições sentada e em pé"
+    else:
+        trimestre = 3
+        alerta = "3º TRIMESTRE - Reduzir intensidade. Evitar decúbito dorsal. Foco em mobilidade pélvica"
+    
+    exercicios_gestantes = {
+        1: {
+            'principal': [
+                {'nome': 'Agachamento Livre (sem peso)', 'series': 3, 'reps': '12-15', 'carga': 'Peso Corporal'},
+                {'nome': 'Remada com Elástico (sentada)', 'series': 3, 'reps': '12-15', 'carga': 'Elástico leve'},
+                {'nome': 'Elevação Pélvica (Ponte)', 'series': 3, 'reps': '15', 'carga': 'Peso Corporal'},
+            ],
+            'mobilidade': [
+                {'nome': 'Alongamento Gato-Vaca', 'series': 2, 'reps': '10', 'carga': '-'},
+                {'nome': 'Rotação de Tronco Sentada', 'series': 2, 'reps': '10 cada lado', 'carga': '-'},
+                {'nome': 'Círculos de Quadril', 'series': 2, 'reps': '10 cada direção', 'carga': '-'},
+            ],
+            'pelvico': [
+                {'nome': 'Respiração Diafragmática', 'series': 3, 'reps': '10 respirações', 'carga': '-'},
+                {'nome': 'Kegel (Contração do Assoalho Pélvico)', 'series': 3, 'reps': '15', 'carga': '-'},
+            ],
+            'cardiovascular': [
+                {'nome': 'Caminhada Leve', 'series': 1, 'reps': '15-20 min', 'carga': 'Ritmo confortável'},
+            ],
+            'contraindicacoes': [
+                'Evitar: Exercícios em decúbito dorsal > 5 minutos',
+                'Evitar: Saltos e exercícios de alto impacto',
+                'Evitar: Valsalva (prender respiração)',
+                'Manter: Hidratação constante',
+                'Monitorar: Frequência cardíaca (máx 140 bpm)'
+            ]
+        },
+        2: {
+            'principal': [
+                {'nome': 'Agachamento Sumô (com apoio)', 'series': 3, 'reps': '10-12', 'carga': 'Peso Corporal'},
+                {'nome': 'Remada Unilateral com Halter (leve)', 'series': 3, 'reps': '12 cada lado', 'carga': '2-3 kg'},
+                {'nome': 'Afundo com Apoio', 'series': 3, 'reps': '8 cada lado', 'carga': 'Peso Corporal'},
+            ],
+            'mobilidade': [
+                {'nome': 'Abertura de Quadril (Borboleta)', 'series': 2, 'reps': '30s', 'carga': '-'},
+                {'nome': 'Alongamento Lateral do Tronco', 'series': 2, 'reps': '15s cada lado', 'carga': '-'},
+                {'nome': 'Mobilidade de Ombro com Bastão', 'series': 2, 'reps': '10', 'carga': '-'},
+            ],
+            'pelvico': [
+                {'nome': 'Kegel com Elevação Pélvica', 'series': 3, 'reps': '12', 'carga': '-'},
+                {'nome': 'Dissociação Pélvica (4 apoios)', 'series': 3, 'reps': '10 cada lado', 'carga': '-'},
+            ],
+            'cardiovascular': [
+                {'nome': 'Caminhada Moderada', 'series': 1, 'reps': '20-25 min', 'carga': 'Ritmo conversável'},
+                {'nome': 'Bicicleta Estacionária (sem impacto)', 'series': 1, 'reps': '15 min', 'carga': 'Resistência leve'},
+            ],
+            'contraindicacoes': [
+                'Evitar: Decúbito dorsal',
+                'Evitar: Exercícios unilaterais com carga excessiva',
+                'Evitar: Alongamentos extremos (relaxina presente)',
+                'Priorizar: Posições sentada, 4 apoios e em pé',
+                'Atenção: Diástase abdominal'
+            ]
+        },
+        3: {
+            'principal': [
+                {'nome': 'Agachamento com Apoio na Bola', 'series': 2, 'reps': '10', 'carga': 'Peso Corporal'},
+                {'nome': 'Remada Baixa com Elástico (sentada)', 'series': 2, 'reps': '12', 'carga': 'Elástico leve'},
+                {'nome': 'Sentar e Levantar Controlado', 'series': 2, 'reps': '8-10', 'carga': 'Peso Corporal'},
+            ],
+            'mobilidade': [
+                {'nome': 'Balanço Pélvico na Bola', 'series': 2, 'reps': '15 cada direção', 'carga': '-'},
+                {'nome': 'Rotação Torácica Sentada', 'series': 2, 'reps': '8 cada lado', 'carga': '-'},
+                {'nome': 'Figura 8 com Quadril', 'series': 2, 'reps': '10', 'carga': '-'},
+            ],
+            'pelvico': [
+                {'nome': 'Kegel em Diferentes Posições', 'series': 3, 'reps': '15', 'carga': '-'},
+                {'nome': 'Respiração 360° (Expansão Costal)', 'series': 3, 'reps': '10', 'carga': '-'},
+            ],
+            'cardiovascular': [
+                {'nome': 'Caminhada Leve', 'series': 1, 'reps': '15-20 min', 'carga': 'Ritmo muito confortável'},
+            ],
+            'contraindicacoes': [
+                'Evitar: Qualquer exercício em decúbito dorsal',
+                'Evitar: Exercícios que causem desconforto',
+                'Evitar: Flexão de quadril > 90° com compressão abdominal',
+                'Priorizar: Mobilidade pélvica e respiratória',
+                'Sinais de alerta: Sangramento, tontura, dor, contrações'
+            ]
+        }
+    }
+    
+    ex_trimestre = exercicios_gestantes[trimestre]
+    planilhas_por_semana = {}
+    
+    for semana in range(1, semanas + 1):
+        registros_semana = []
+        
+        registros_semana.append({
+            'DIA': '⚠️ ALERTAS', 'TIPO': 'SEGURANÇA', 'EXERCÍCIO': alerta,
+            'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+            'CARGA': '', 'OBSERVAÇÃO': f'Semana Gestacional: {semana_gest} | Trimestre: {trimestre}º'
+        })
+        
+        for dia in range(1, frequencia + 1):
+            dia_nome = f"DIA {dia} - {trimestre}º TRIMESTRE"
+            registros_semana.append({
+                'DIA': f'▶ {dia_nome}', 'TIPO': '', 'EXERCÍCIO': 'Foco: Mobilidade e Segurança',
+                'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+                'CARGA': '', 'OBSERVAÇÃO': '🤰'
+            })
+            
+            for cat in ['principal', 'mobilidade', 'pelvico', 'cardiovascular']:
+                if cat in ex_trimestre:
+                    for ex in ex_trimestre[cat]:
+                        tipo_treino = cat.upper()
+                        if cat == 'pelvico': tipo_treino = 'ASSOALHO PÉLVICO'
+                        elif cat == 'cardiovascular': tipo_treino = 'CARDIO'
+                        
+                        registros_semana.append({
+                            'DIA': f'  {dia}', 'TIPO': tipo_treino, 'EXERCÍCIO': ex['nome'],
+                            'SÉRIES': ex['series'], 'REPETIÇÕES': ex['reps'],
+                            '% CARGA': '-', 'CARGA': ex['carga'], 'OBSERVAÇÃO': ''
+                        })
+            
+            registros_semana.append({
+                'DIA': '', 'TIPO': '', 'EXERCÍCIO': '─' * 60,
+                'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+                'CARGA': '', 'OBSERVAÇÃO': ''
+            })
+        
+        registros_semana.append({
+            'DIA': '⚠️ CONTRAINDICAÇÕES', 'TIPO': 'ATENÇÃO', 
+            'EXERCÍCIO': '; '.join(ex_trimestre['contraindicacoes']),
+            'SÉRIES': '', 'REPETIÇÕES': '', '% CARGA': '',
+            'CARGA': '', 'OBSERVAÇÃO': 'CONSULTAR MÉDICO REGULARMENTE'
+        })
+        
+        planilhas_por_semana[f'Semana {semana:02d}'] = pd.DataFrame(registros_semana)
+    
+    return planilhas_por_semana
+
+# -----------------------------
+# GERADOR DE PLANILHA PRINCIPAL
 # -----------------------------
 def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
     objetivo = cliente['objetivo']
+    
+    if objetivo == "Beach Tennis":
+        return gerar_treino_beach_tennis(cliente, semanas, frequencia)
+    elif objetivo == "Gestante":
+        return gerar_treino_gestantes(cliente, semanas, frequencia)
+    
     agach = cliente['agachamento_1rm']
     sup = cliente['supino_1rm']
     terra = cliente['terra_1rm']
@@ -581,7 +858,7 @@ def gerar_planilha_ondulatoria(cliente, semanas=4, frequencia=3):
 
     return planilhas_por_semana
 
-def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
+def get_table_download_link(planilhas_dict, nome_cliente="cliente", objetivo="padrao"):
     output = BytesIO()
     
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -590,25 +867,40 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
             df.to_excel(writer, sheet_name=aba_nome, index=False)
             worksheet = writer.sheets[aba_nome]
             
-            col_widths = {'A': 10, 'B': 18, 'C': 40, 'D': 10, 'E': 14, 'F': 12, 'G': 14, 'H': 14, 'I': 20}
+            col_widths = {'A': 10, 'B': 18, 'C': 45, 'D': 10, 'E': 14, 'F': 12, 'G': 18, 'H': 14, 'I': 25}
             for col_letter, width in col_widths.items():
                 worksheet.column_dimensions[col_letter].width = width
             
             from openpyxl.styles import PatternFill, Font
             purple_fill = PatternFill(start_color='6A1B9A', end_color='6A1B9A', fill_type='solid')
+            orange_fill = PatternFill(start_color='FF6B35', end_color='FF6B35', fill_type='solid')
+            green_fill = PatternFill(start_color='2ECC40', end_color='2ECC40', fill_type='solid')
             
             for row in range(2, len(df) + 2):
                 cell_value = worksheet.cell(row=row, column=1).value
                 if cell_value and str(cell_value).startswith('▶'):
                     for col in range(1, 10):
                         cell = worksheet.cell(row=row, column=col)
-                        cell.fill = purple_fill
-                        cell.font = Font(color='7CFC00', bold=True, size=11)
+                        cell.fill = green_fill if 'BEACH' in str(worksheet.cell(row=row, column=9).value or '') else purple_fill
+                        cell.font = Font(color='FFFFFF', bold=True, size=11)
+                elif cell_value and str(cell_value).startswith('⚠️'):
+                    for col in range(1, 10):
+                        cell = worksheet.cell(row=row, column=col)
+                        cell.fill = orange_fill
+                        cell.font = Font(color='FFFFFF', bold=True, size=11)
     
     excel_data = output.getvalue()
     b64 = base64.b64encode(excel_data).decode()
     data_formatada = datetime.now().strftime("%d-%m-%Y")
-    nome_arquivo = f"TREINO_HULK_{nome_cliente}_{data_formatada}.xlsx"
+    
+    if objetivo == "Beach Tennis":
+        prefixo = "BEACH_TENNIS"
+    elif objetivo == "Gestante":
+        prefixo = "GESTANTE"
+    else:
+        prefixo = "TREINO_HULK"
+    
+    nome_arquivo = f"{prefixo}_{nome_cliente}_{data_formatada}.xlsx"
     
     href = f'''
     <div style="text-align: center; padding: 20px;">
@@ -662,18 +954,54 @@ if menu == "Cadastro de Cliente":
             "Elite (Nível 5)",
             "Competitivo (Nível 6)"
         ])
-        objetivo = st.selectbox("Objetivo principal", ["Hipertrofia", "Força Máxima", "Potência"])
+        objetivo = st.selectbox("Objetivo principal", [
+            "Hipertrofia", 
+            "Força Máxima", 
+            "Potência",
+            "Beach Tennis",
+            "Gestante"
+        ])
+        
+        perfil_especial = "Nenhum"
+        semana_gestacional = 0
+        observacoes_medicas = ""
+        
+        if objetivo == "Gestante":
+            st.markdown("---")
+            st.markdown("### 🤰 Informações da Gestação")
+            perfil_especial = "Gestante"
+            semana_gestacional = st.number_input("Semana Gestacional", 1, 42, 20)
+            observacoes_medicas = st.text_area("Observações Médicas / Liberações")
+            st.info("⚠️ Certifique-se de que a cliente tem liberação médica para atividade física")
+        
+        if objetivo == "Beach Tennis":
+            perfil_especial = "Beach Tennis"
+            st.info("🏖️ Metodologia específica para Beach Tennis ativada")
+        
+        st.markdown("---")
         st.subheader("Testes de Força (1RM ou Estimado)")
+        
+        if objetivo == "Gestante":
+            st.info("Para gestantes, os valores de força serão usados como referência para cargas adaptadas")
+        
         col1, col2, col3 = st.columns(3)
         agach = col1.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
         sup = col2.number_input("Supino (kg)", 0.0, 500.0, 60.0)
         terra = col3.number_input("Terra (kg)", 0.0, 500.0, 100.0)
         peg_dir = st.number_input("Força de Pegada Mão Direita (kg)", 0.0, 200.0, 40.0)
         peg_esq = st.number_input("Força de Pegada Mão Esquerda (kg)", 0.0, 200.0, 38.0)
+        
         submitted = st.form_submit_button("💾 SALVAR CLIENTE")
         if submitted:
-            salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq)
-            st.success(f"✅ Cliente {nome} cadastrado com sucesso!")
+            salvar_cliente(nome, idade, nivel, objetivo, agach, sup, terra, peg_dir, peg_esq,
+                          perfil_especial, semana_gestacional, observacoes_medicas)
+            
+            if objetivo == "Gestante":
+                st.success(f"✅ Gestante {nome} cadastrada com sucesso! Semana gestacional: {semana_gestacional}")
+            elif objetivo == "Beach Tennis":
+                st.success(f"✅ Atleta {nome} cadastrado(a) com sucesso! Metodologia Beach Tennis ativada 🏖️")
+            else:
+                st.success(f"✅ Cliente {nome} cadastrado com sucesso!")
 
 # ============================================
 # AVALIAÇÃO FÍSICA
@@ -688,6 +1016,14 @@ elif menu == "Avaliação Física":
     else:
         cliente_nome = st.selectbox("👤 Selecione o cliente", clientes_df['nome'])
         id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
+        cliente = carregar_cliente(id_cliente)
+        
+        if cliente['perfil_especial'] == 'Gestante':
+            st.info(f"🤰 Gestante - Semana Gestacional: {cliente['semana_gestacional']}")
+            if cliente['observacoes_medicas']:
+                st.warning(f"📋 Obs. Médicas: {cliente['observacoes_medicas']}")
+        elif cliente['perfil_especial'] == 'Beach Tennis':
+            st.info("🏖️ Atleta de Beach Tennis")
         
         tab_avaliacao = st.radio("📋 Selecione a ação", ["Nova Avaliação", "Histórico de Avaliações"], horizontal=True)
         
@@ -717,21 +1053,25 @@ elif menu == "Avaliação Física":
                 pant_dir = col3.number_input("Panturrilha Direita", 10.0, 60.0, 37.0, 0.1)
                 pant_esq = st.number_input("Panturrilha Esquerda", 10.0, 60.0, 37.0, 0.1)
                 
-                st.markdown("### 🏥 Dobras Cutâneas (mm)")
-                col1, col2, col3 = st.columns(3)
-                triceps = col1.number_input("Tríceps", 1.0, 80.0, 15.0, 0.1)
-                subescapular = col2.number_input("Subescapular", 1.0, 80.0, 15.0, 0.1)
-                peitoral = col3.number_input("Peitoral", 1.0, 80.0, 12.0, 0.1)
-                
-                col1, col2, col3 = st.columns(3)
-                axilar_media = col1.number_input("Axilar Média", 1.0, 80.0, 12.0, 0.1)
-                suprailiaca = col2.number_input("Supra-ilíaca", 1.0, 80.0, 15.0, 0.1)
-                abdominal = col3.number_input("Abdominal", 1.0, 80.0, 20.0, 0.1)
-                coxa = st.number_input("Coxa", 1.0, 80.0, 18.0, 0.1)
-                
-                col1, col2 = st.columns(2)
-                biceps = col1.number_input("Bíceps", 1.0, 80.0, 10.0, 0.1)
-                perna = col2.number_input("Perna", 1.0, 80.0, 15.0, 0.1)
+                if cliente['perfil_especial'] != 'Gestante':
+                    st.markdown("### 🏥 Dobras Cutâneas (mm)")
+                    col1, col2, col3 = st.columns(3)
+                    triceps = col1.number_input("Tríceps", 1.0, 80.0, 15.0, 0.1)
+                    subescapular = col2.number_input("Subescapular", 1.0, 80.0, 15.0, 0.1)
+                    peitoral = col3.number_input("Peitoral", 1.0, 80.0, 12.0, 0.1)
+                    
+                    col1, col2, col3 = st.columns(3)
+                    axilar_media = col1.number_input("Axilar Média", 1.0, 80.0, 12.0, 0.1)
+                    suprailiaca = col2.number_input("Supra-ilíaca", 1.0, 80.0, 15.0, 0.1)
+                    abdominal = col3.number_input("Abdominal", 1.0, 80.0, 20.0, 0.1)
+                    coxa = st.number_input("Coxa", 1.0, 80.0, 18.0, 0.1)
+                    
+                    col1, col2 = st.columns(2)
+                    biceps = col1.number_input("Bíceps", 1.0, 80.0, 10.0, 0.1)
+                    perna = col2.number_input("Perna", 1.0, 80.0, 15.0, 0.1)
+                else:
+                    triceps = subescapular = peitoral = axilar_media = suprailiaca = abdominal = coxa = biceps = perna = 0.0
+                    st.info("Dobras cutâneas não são recomendadas para gestantes")
                 
                 observacoes = st.text_area("Observações")
                 
@@ -745,35 +1085,36 @@ elif menu == "Avaliação Física":
                         biceps, perna, observacoes
                     )
                     salvar_avaliacao_fisica(dados_av)
-                    
-                    dados_calc = {
-                        'idade': 30, 'sexo': 'M', 'peso': peso, 'altura': altura,
-                        'cintura': cintura, 'quadril': quadril,
-                        'triceps': triceps, 'subescapular': subescapular,
-                        'peitoral': peitoral, 'axilar_media': axilar_media,
-                        'suprailiaca': suprailiaca, 'abdominal': abdominal, 'coxa': coxa
-                    }
-                    
                     st.success("✅ Avaliação salva com sucesso!")
-                    st.markdown("---")
-                    st.subheader("📊 RESULTADOS DA AVALIAÇÃO")
                     
-                    imc = calcular_imc(peso, altura)
-                    rcq = calcular_rcq(cintura, quadril)
-                    resultados = calcular_percentual_gordura(dados_calc)
-                    
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("IMC", f"{imc:.1f}", classificar_imc(imc))
-                    col2.metric("RCQ", f"{rcq:.2f}", classificar_rcq(rcq, 'M'))
-                    primeiro_metodo = list(resultados.keys())[0]
-                    col3.metric(primeiro_metodo, f"{resultados[primeiro_metodo]:.1f}%", classificar_gordura(resultados[primeiro_metodo]))
-                    
-                    st.markdown("### 📈 Percentual de Gordura - Todos os Protocolos")
-                    df_resultados = pd.DataFrame([
-                        {'Protocolo': k, 'Percentual (%)': v, 'Classificação': classificar_gordura(v)}
-                        for k, v in resultados.items()
-                    ])
-                    st.dataframe(df_resultados, use_container_width=True, hide_index=True)
+                    if cliente['perfil_especial'] != 'Gestante':
+                        st.markdown("---")
+                        st.subheader("📊 RESULTADOS DA AVALIAÇÃO")
+                        imc = calcular_imc(peso, altura)
+                        rcq = calcular_rcq(cintura, quadril)
+                        dados_calc = {
+                            'idade': cliente['idade'], 'sexo': 'M', 'peso': peso, 'altura': altura,
+                            'cintura': cintura, 'quadril': quadril, 'triceps': triceps,
+                            'subescapular': subescapular, 'peitoral': peitoral,
+                            'axilar_media': axilar_media, 'suprailiaca': suprailiaca,
+                            'abdominal': abdominal, 'coxa': coxa
+                        }
+                        resultados = calcular_percentual_gordura(dados_calc)
+                        
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("IMC", f"{imc:.1f}", classificar_imc(imc))
+                        col2.metric("RCQ", f"{rcq:.2f}", classificar_rcq(rcq, 'M'))
+                        if resultados:
+                            primeiro_metodo = list(resultados.keys())[0]
+                            col3.metric(primeiro_metodo, f"{resultados[primeiro_metodo]:.1f}%", classificar_gordura(resultados[primeiro_metodo]))
+                        
+                        if resultados:
+                            st.markdown("### 📈 Percentual de Gordura - Todos os Protocolos")
+                            df_resultados = pd.DataFrame([
+                                {'Protocolo': k, 'Percentual (%)': v, 'Classificação': classificar_gordura(v)}
+                                for k, v in resultados.items()
+                            ])
+                            st.dataframe(df_resultados, use_container_width=True, hide_index=True)
         
         else:
             st.subheader("📊 Histórico de Avaliações")
@@ -789,8 +1130,11 @@ elif menu == "Avaliação Física":
                             st.write(f"Tórax: {av['torax']}cm | Cintura: {av['cintura']}cm | Abdômen: {av['abdomen']}cm")
                             st.write(f"Quadril: {av['quadril']}cm | Braço Dir: {av['braco_direito']}cm | Braço Esq: {av['braco_esquerdo']}cm")
                         with col2:
-                            st.write(f"Tríceps: {av['triceps']}mm | Subescapular: {av['subescapular']}mm")
-                            st.write(f"Peitoral: {av['peitoral']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
+                            if av['triceps'] > 0:
+                                st.write(f"Tríceps: {av['triceps']}mm | Subescapular: {av['subescapular']}mm")
+                                st.write(f"Peitoral: {av['peitoral']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
+                            else:
+                                st.write("Dobras não registradas (gestante)")
 
 # ============================================
 # AVALIAÇÃO POSTURAL
@@ -871,22 +1215,6 @@ elif menu == "Avaliação Postural":
                     )
                     salvar_avaliacao_postural(dados_postural)
                     st.success("✅ Avaliação postural salva com sucesso!")
-                    
-                    st.markdown("---")
-                    st.subheader("📋 Resumo da Avaliação Postural")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write(f"**Anterior:** {vista_anterior}")
-                        st.write(f"**Posterior:** {vista_posterior}")
-                        st.write(f"**Lateral Dir:** {vista_lat_dir}")
-                        st.write(f"**Lateral Esq:** {vista_lat_esq}")
-                    with col2:
-                        st.write(f"**Cabeça:** {cabeca}")
-                        st.write(f"**Ombros:** {ombros}")
-                        st.write(f"**Coluna:** {coluna}")
-                        st.write(f"**Quadril:** {quadril}")
-                        st.write(f"**Joelhos:** {joelhos}")
-                        st.write(f"**Pés:** {pes}")
         
         else:
             st.subheader("📊 Histórico de Avaliações Posturais")
@@ -901,13 +1229,10 @@ elif menu == "Avaliação Postural":
                         with col1:
                             st.write(f"**Anterior:** {av['vista_anterior']}")
                             st.write(f"**Posterior:** {av['vista_posterior']}")
+                        with col2:
                             st.write(f"**Cabeça:** {av['cabeca']}")
                             st.write(f"**Ombros:** {av['ombros']}")
-                        with col2:
                             st.write(f"**Coluna:** {av['coluna']}")
-                            st.write(f"**Quadril:** {av['quadril']}")
-                            st.write(f"**Joelhos:** {av['joelhos']}")
-                            st.write(f"**Pés:** {av['pes']}")
 
 # ============================================
 # FOTOS AVALIATIVAS
@@ -986,6 +1311,12 @@ elif menu == "Geração de Treino":
         cliente = carregar_cliente(id_cliente)
         
         if cliente is not None:
+            # Mostra informações do perfil especial
+            if cliente['perfil_especial'] == 'Gestante':
+                st.info(f"🤰 Metodologia para Gestantes - {cliente['semana_gestacional']} semanas")
+            elif cliente['perfil_especial'] == 'Beach Tennis':
+                st.info("🏖️ Metodologia específica para Beach Tennis")
+            
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🎯 Objetivo", cliente['objetivo'])
             col2.metric("📊 Nível", cliente['nivel'].split('(')[0].strip())
@@ -1008,7 +1339,7 @@ elif menu == "Geração de Treino":
                     planilhas = gerar_planilha_ondulatoria(cliente, semanas=semanas, frequencia=freq)
                 
                 st.success(f"✅ Planilha gerada! {len(planilhas)} semanas programadas.")
-                st.markdown(get_table_download_link(planilhas, cliente_nome), unsafe_allow_html=True)
+                st.markdown(get_table_download_link(planilhas, cliente_nome, cliente['objetivo']), unsafe_allow_html=True)
                 
                 st.markdown("---")
                 st.subheader("📊 VISUALIZAÇÃO PRÉVIA")
@@ -1017,23 +1348,7 @@ elif menu == "Geração de Treino":
                 for i, (nome_semana, df_semana) in enumerate(planilhas.items()):
                     with tabs[i]:
                         st.markdown(f"### 🟢 {nome_semana.upper()}")
-                        df_display = df_semana[df_semana['EXERCÍCIO'].str.contains('─') == False]
-                        dias_unicos = df_display[df_display['DIA'].str.startswith('▶', na=False)]['DIA'].tolist()
-                        
-                        for dia_header in dias_unicos:
-                            dia_nome = df_display[df_display['DIA'] == dia_header]['EXERCÍCIO'].values[0]
-                            with st.expander(f"📍 {dia_header} - {dia_nome}", expanded=True):
-                                idx_inicio = df_display[df_display['DIA'] == dia_header].index[0]
-                                idx_dias_seguintes = df_display[df_display['DIA'].str.startswith('▶', na=False)].index
-                                idx_fim = idx_dias_seguintes[idx_dias_seguintes > idx_inicio].min() if any(idx_dias_seguintes > idx_inicio) else len(df_display)
-                                df_dia = df_display.iloc[idx_inicio+1:idx_fim]
-                                df_dia = df_dia[df_dia['EXERCÍCIO'] != '']
-                                
-                                if not df_dia.empty:
-                                    st.dataframe(
-                                        df_dia[['TIPO', 'EXERCÍCIO', 'SÉRIES', 'REPETIÇÕES', '% 1RM', 'CARGA (kg)', 'DESCANSO']],
-                                        use_container_width=True, hide_index=True
-                                    )
+                        st.dataframe(df_semana, use_container_width=True, hide_index=True)
 
 # ============================================
 # HISTÓRICO & EVOLUÇÃO
@@ -1057,7 +1372,12 @@ elif menu == "Histórico & Evolução":
         col1.metric("Pegada Direita", f"{cliente['pegada_direita']} kg")
         col2.metric("Pegada Esquerda", f"{cliente['pegada_esquerda']} kg")
         
-        st.info("📊 Gráficos de evolução e comparativos serão disponibilizados em breve.")
+        if cliente['perfil_especial'] == 'Gestante':
+            st.info(f"🤰 Semana Gestacional: {cliente['semana_gestacional']}")
+        elif cliente['perfil_especial'] == 'Beach Tennis':
+            st.info("🏖️ Atleta de Beach Tennis")
+        
+        st.info("📊 Gráficos de evolução serão disponibilizados em breve.")
 
 # ============================================
 # RODAPÉ
