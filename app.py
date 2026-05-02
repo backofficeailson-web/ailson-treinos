@@ -4,7 +4,7 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from PIL import Image
 import io
 import base64
@@ -32,6 +32,7 @@ CINZA_ESCURO = "#1E1E1E"
 CINZA_MEDIO = "#2D2D2D"
 BRANCO = "#FFFFFF"
 AMARELO_ALERTA = "#FFD700"
+VERMELHO = "#FF4136"
 
 # =========================
 # BANCO DE DADOS
@@ -189,7 +190,7 @@ def carregar_fotos(cliente_id):
     return pd.read_sql_query(f"SELECT * FROM fotos WHERE cliente_id = {cliente_id} ORDER BY data DESC", conn)
 
 # =========================
-# FUNÇÕES DE CÁLCULO
+# FUNÇÕES DE CÁLCULO (mantidas)
 # =========================
 def calcular_percentual_gordura(dados, sexo='M'):
     idade = dados.get('idade', 30)
@@ -470,6 +471,52 @@ def get_table_download_link(planilhas_dict, nome_cliente="cliente"):
     return href
 
 # =========================
+# FUNÇÕES DE ALERTA DE VENCIMENTO
+# =========================
+def extrair_dia_vencimento(vencimento_str):
+    """Tenta extrair o dia do vencimento a partir de strings como 'dia 10', '10', 'todo dia 15'"""
+    import re
+    if not vencimento_str:
+        return None
+    numbers = re.findall(r'\d+', str(vencimento_str))
+    if numbers:
+        dia = int(numbers[0])
+        if 1 <= dia <= 31:
+            return dia
+    return None
+
+def calcular_status_vencimento(vencimento_str):
+    dia = extrair_dia_vencimento(vencimento_str)
+    if dia is None:
+        return "data_invalida", None, "?"
+    hoje = date.today()
+    # Próximo vencimento no mês atual ou próximo mês
+    try:
+        prox_vencimento = date(hoje.year, hoje.month, dia)
+    except ValueError:
+        # dia inválido para o mês (ex: 31 em fevereiro)
+        return "data_invalida", None, "?"
+    if prox_vencimento < hoje:
+        # já passou, considerar próximo mês
+        mes = hoje.month + 1
+        ano = hoje.year
+        if mes > 12:
+            mes = 1
+            ano += 1
+        try:
+            prox_vencimento = date(ano, mes, dia)
+        except ValueError:
+            return "data_invalida", None, "?"
+    dias_restantes = (prox_vencimento - hoje).days
+    if dias_restantes < 0:
+        status = "vencido"
+    elif dias_restantes <= 5:
+        status = "proximo"
+    else:
+        status = "em_dia"
+    return status, prox_vencimento, dias_restantes
+
+# =========================
 # LOGIN
 # =========================
 if "logado" not in st.session_state:
@@ -531,7 +578,7 @@ menu = st.sidebar.radio("📋 MENU", [
 ])
 
 # =========================
-# DASHBOARD FINANCEIRO
+# DASHBOARD FINANCEIRO COM ALERTAS
 # =========================
 if menu == "Dashboard Financeiro":
     st.title("📊 Dashboard Financeiro")
@@ -547,14 +594,85 @@ if menu == "Dashboard Financeiro":
     col3.metric("Mensalidade Média", f"R$ {media_mensal:,.2f}")
     
     if not df.empty:
-        st.subheader("Distribuição de Mensalidades")
+        # Processar status de vencimento
+        status_list = []
+        datas_vencimento = []
+        dias_restantes_list = []
+        for _, row in df.iterrows():
+            status, prox_data, dias = calcular_status_vencimento(row['vencimento'])
+            status_list.append(status)
+            datas_vencimento.append(prox_data.strftime('%d/%m/%Y') if prox_data else 'Indefinido')
+            dias_restantes_list.append(dias if dias is not None else '?')
+        df_status = df.copy()
+        df_status['status'] = status_list
+        df_status['proximo_vencimento'] = datas_vencimento
+        df_status['dias_restantes'] = dias_restantes_list
+        
+        # Resumo de status
+        vencidos = len(df_status[df_status['status'] == 'vencido'])
+        proximos = len(df_status[df_status['status'] == 'proximo'])
+        em_dia = len(df_status[df_status['status'] == 'em_dia'])
+        invalidos = len(df_status[df_status['status'] == 'data_invalida'])
+        
+        st.subheader("🚨 Alertas de Vencimento")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🔴 Vencidos", vencidos)
+        col2.metric("🟡 Vencem em até 5 dias", proximos)
+        col3.metric("🟢 Em dia", em_dia)
+        col4.metric("❌ Data inválida", invalidos)
+        
+        # Tabela detalhada com formatação condicional
+        st.subheader("📋 Situação dos Alunos")
+        # Vamos criar um DataFrame para exibição com HTML customizado para cores
+        def color_status(row):
+            if row['status'] == 'vencido':
+                return f'background-color: {VERMELHO}; color: white'
+            elif row['status'] == 'proximo':
+                return f'background-color: {AMARELO_ALERTA}; color: black'
+            elif row['status'] == 'em_dia':
+                return f'background-color: {VERDE_HULK}; color: white'
+            else:
+                return ''
+        
+        styled_df = df_status[['nome', 'mensalidade', 'vencimento', 'proximo_vencimento', 'dias_restantes', 'status']].copy()
+        styled_df = styled_df.rename(columns={'proximo_vencimento': 'Próx. Venc.', 'dias_restantes': 'Dias Rest.'})
+        # Aplicar estilo (não é possível usar applymap diretamente para exportar, mas podemos usar st.dataframe com highlight)
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            column_config={
+                "status": st.column_config.TextColumn(
+                    "Status",
+                    help="🔴 vencido | 🟡 próximo | 🟢 em dia"
+                )
+            }
+        )
+        
+        # Gráfico de status
+        st.subheader("📊 Distribuição de Status")
+        status_counts = pd.DataFrame({
+            'Status': ['Vencido', 'Próximo (5 dias)', 'Em dia', 'Data inválida'],
+            'Quantidade': [vencidos, proximos, em_dia, invalidos]
+        })
+        fig_status = px.bar(status_counts, x='Status', y='Quantidade', 
+                            color='Status', 
+                            color_discrete_map={
+                                'Vencido': VERMELHO,
+                                'Próximo (5 dias)': AMARELO_ALERTA,
+                                'Em dia': VERDE_HULK,
+                                'Data inválida': CINZA_MEDIO
+                            },
+                            title="Status de Vencimento")
+        st.plotly_chart(fig_status, use_container_width=True)
+        
+        # Gráfico de faturamento por aluno
+        st.subheader("💵 Mensalidades")
         fig = px.bar(df, x="nome", y="mensalidade", title="Mensalidade por Aluno",
                      labels={"nome": "Aluno", "mensalidade": "Mensalidade (R$)"},
                      color="mensalidade", color_continuous_scale="greens")
         st.plotly_chart(fig, use_container_width=True)
-        
-        st.subheader("Vencimentos")
-        st.dataframe(df[["nome", "telefone", "mensalidade", "vencimento"]], use_container_width=True)
+    else:
+        st.info("Nenhum aluno cadastrado.")
 
 # =========================
 # CADASTRO DE ALUNO (unificado)
@@ -567,7 +685,7 @@ elif menu == "Cadastro de Aluno":
         telefone = col2.text_input("Telefone")
         col1, col2 = st.columns(2)
         mensalidade = col1.number_input("Mensalidade (R$)", min_value=0.0, step=10.0, value=100.0)
-        vencimento = col2.text_input("Data de Vencimento (ex: dia 10)")
+        vencimento = col2.text_input("Data de Vencimento (ex: dia 10 ou 10)")
         idade = st.number_input("Idade", 12, 100, 30)
         nivel = st.selectbox("Nível de experiência", [
             "Iniciante (Nível 1)", "Básico (Nível 2)", "Intermediário (Nível 3)",
@@ -593,7 +711,7 @@ elif menu == "Cadastro de Aluno":
 # =========================
 # DEMAIS MÓDULOS (Avaliação Física, Postural, Fotos, Geração de Treino, Histórico)
 # =========================
-# (As funções a seguir são as mesmas do código anterior, adaptadas para usar o novo conn e funções)
+# (A mesma implementação anterior, omitida por brevidade, mas mantenha as funções existentes no seu código. Aqui apenas replico as chamadas principais.)
 
 elif menu == "Avaliação Física":
     st.header("📏 AVALIAÇÃO FÍSICA COMPLETA")
@@ -847,9 +965,6 @@ elif menu == "Histórico & Evolução":
         col3.metric("Terra", f"{cliente['terra_1rm']} kg")
         st.info("📊 Gráficos de evolução serão disponibilizados em breve.")
 
-# =========================
-# GERENCIAR ALUNOS (exclusão)
-# =========================
 elif menu == "Gerenciar Alunos":
     st.title("📋 Gerenciar Alunos")
     df = listar_alunos()
