@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-AZUL = "#1E3A8A"
+AZUL = "#1E3A8A"      # Ajuste para o tom exato da sua logo
 PRETO = "#111111"
 BRANCO = "#FFFFFF"
 
@@ -51,6 +51,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
+# Logomarca
 LOGO_PATH = "logo.png"
 if os.path.exists(LOGO_PATH):
     st.sidebar.image(LOGO_PATH, width=180)
@@ -216,7 +217,7 @@ if 'EXERCICIOS' not in st.session_state:
 EXERCICIOS = st.session_state.EXERCICIOS
 
 # -----------------------------
-# GERADOR DE PLANILHA ONDULATÓRIA (com todas as modalidades e postural)
+# GERADOR DE PLANILHA ONDULATÓRIA
 # -----------------------------
 def gerar_planilha(cliente, semanas=4, frequencia=3):
     objetivo = cliente['objetivo']
@@ -224,9 +225,7 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     agach = cliente['agachamento_1rm']
     sup = cliente['supino_1rm']
     terra = cliente['terra_1rm']
-    sexo = cliente.get('sexo', 'Masculino')
 
-    # Carregar última avaliação postural
     postural = carregar_ultima_postural(cliente['id'])
     desvios = {
         'cabeca': postural['cabeca'] if postural is not None else 'Normal',
@@ -237,26 +236,19 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         'pes': postural['pes'] if postural is not None else 'Normal'
     }
 
-    # Exercícios corretivos baseados nos desvios
     corretivos = []
     if desvios['cabeca'] != 'Normal':
-        corretivos.append("Alongamento de esternocleidomastóideo")
-        corretivos.append("Fortalecimento de flexores profundos do pescoço")
+        corretivos += ["Alongamento de esternocleidomastóideo", "Fortalecimento de flexores profundos do pescoço"]
     if desvios['ombros'] != 'Normal':
-        corretivos.append("Fortalecimento de romboides (remada baixa)")
-        corretivos.append("Alongamento de peitoral menor")
+        corretivos += ["Fortalecimento de romboides (remada baixa)", "Alongamento de peitoral menor"]
     if desvios['coluna'] != 'Normal':
-        corretivos.append("Mobilidade torácica (extensão sobre rolo)")
-        corretivos.append("Fortalecimento de eretores espinhais")
+        corretivos += ["Mobilidade torácica (extensão sobre rolo)", "Fortalecimento de eretores espinhais"]
     if desvios['quadril'] != 'Normal':
-        corretivos.append("Alongamento de flexores do quadril")
-        corretivos.append("Fortalecimento de glúteo médio")
+        corretivos += ["Alongamento de flexores do quadril", "Fortalecimento de glúteo médio"]
     if desvios['joelhos'] != 'Normal':
-        corretivos.append("Fortalecimento de vasto medial (agachamento sumô)")
-        corretivos.append("Alongamento de isquiotibiais")
+        corretivos += ["Fortalecimento de vasto medial", "Alongamento de isquiotibiais"]
     if desvios['pes'] != 'Normal':
-        corretivos.append("Fortalecimento intrínseco do pé (toalha)")
-        corretivos.append("Massagem plantar")
+        corretivos += ["Fortalecimento intrínseco do pé", "Massagem plantar"]
 
     # Ajustes por modalidade
     if modalidade == "Beach Tennis":
@@ -282,15 +274,15 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         freq = max(frequencia, 3)
     elif modalidade == "V-Taper":
         ex_extra = ["Desenvolvimento Arnold", "Elevação Lateral", "Remada Alta", "Pullover", "Crucifixo Inverso"]
-        freq = 5  # Ênfase em ombros e costas
+        freq = 5
     elif modalidade == "Bikini":
         ex_extra = ["Glúteo no Cabo", "Abdutora com Elástico", "Stiff Unilateral", "Agachamento Búlgaro", "Ponte Pélvica com Barra"]
-        freq = 5  # Ênfase em glúteos e pernas
-    else:  # Geral
+        freq = 5
+    else:
         ex_extra = []
         freq = frequencia
 
-    # Esquema de séries/reps base
+    # Esquema de séries/reps
     if modalidade == "Powerlifting":
         rep_schemes_base = [
             {'series':5, 'reps':3, 'intensidade':0.85},
@@ -298,7 +290,7 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
             {'series':3, 'reps':1, 'intensidade':0.95},
             {'series':5, 'reps':2, 'intensidade':0.88}
         ]
-    elif modalidade == "Fisiculturismo" or modalidade in ["V-Taper", "Bikini"]:
+    elif modalidade in ["Fisiculturismo", "V-Taper", "Bikini"]:
         rep_schemes_base = [
             {'series':4, 'reps':12, 'intensidade':0.60},
             {'series':3, 'reps':10, 'intensidade':0.65},
@@ -337,107 +329,105 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         intensidade = round(scheme_base['intensidade'] * fator_progressao, 2)
 
         for dia in range(1, freq+1):
-            # Exercícios principais por modalidade
+            # Escolha dos exercícios do dia conforme modalidade
             if modalidade == "Powerlifting":
                 if dia == 1:
-                    ex_principais = EXERCICIOS['Agachamento'][:2] + ["Agachamento Pausado"]
+                    ex_principais = ["Agachamento Livre (barra alta)", "Agachamento Pausado", "Box Squat"]
                 elif dia == 2:
-                    ex_principais = EXERCICIOS['Supino'][:2] + ["Supino Fechado", "Board Press"]
+                    ex_principais = ["Supino Reto", "Supino Fechado", "Board Press"]
                 elif dia == 3:
-                    ex_principais = EXERCICIOS['Terra'][:2] + ["Terra Sumô", "Terra Déficit"]
+                    ex_principais = ["Levantamento Terra Tradicional", "Terra Sumô", "Terra Déficit"]
                 else:
-                    ex_principais = EXERCICIOS['Braços'] + EXERCICIOS['Barra Fixa / Paralela'] + ["Lockout Terra"]
+                    ex_principais = ["Rosca Direta", "Tríceps Testa", "Barra Fixa com Peso", "Dips (Paralela)", "Lockout Terra"]
 
             elif modalidade == "Fisiculturismo":
                 if dia == 1:  # Peito + Tríceps
-                    ex_principais = EXERCICIOS['Supino'][:2] + ["Crucifixo Inclinado", "Tríceps Francês", "Tríceps Corda (Cross)"]
+                    ex_principais = ["Supino Reto", "Supino Fechado", "Crucifixo Inclinado", "Tríceps Francês", "Tríceps Corda (Cross)"]
                 elif dia == 2:  # Costas + Bíceps
-                    ex_principais = EXERCICIOS['Remada'][:2] + EXERCICIOS['Terra'][:1] + ["Rosca Direta", "Rosca Scott"]
+                    ex_principais = ["Remada Curvada", "Remada Nórdica", "Levantamento Terra Tradicional", "Rosca Direta", "Rosca Scott"]
                 elif dia == 3:  # Pernas
-                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Acessórios'][:2] + ["Cadeira Extensora", "Mesa Flexora", "Panturrilha em Pé"]
+                    ex_principais = ["Agachamento Livre (barra alta)", "Stiff", "Cadeira Extensora", "Mesa Flexora", "Panturrilha em Pé"]
                 elif dia == 4:  # Ombros + Abdômen
-                    ex_principais = EXERCICIOS['Desenvolvimento'][:2] + ["Elevação Lateral"] + ["Abdominal"]
-                elif dia == 5:  # Pernas (ênfase posterior)
-                    ex_principais = ["Stiff", "Good Morning"] + EXERCICIOS['Terra'][:1] + ["Mesa Flexora"]
-                else:  # Braços ou descanso ativo
-                    ex_principais = EXERCICIOS['Braços'] + ["Rosca Scott", "Tríceps Francês"]
+                    ex_principais = ["Desenvolvimento Militar", "Elevação Lateral", "Abdominal"]
+                elif dia == 5:  # Pernas posterior
+                    ex_principais = ["Stiff", "Good Morning", "Mesa Flexora"]
+                else:
+                    ex_principais = ["Rosca Direta", "Tríceps Francês", "Rosca Scott"]
 
             elif modalidade == "V-Taper":
                 if dia == 1:  # Ombros
-                    ex_principais = EXERCICIOS['Desenvolvimento'][:2] + ["Elevação Lateral", "Remada Alta"]
+                    ex_principais = ["Desenvolvimento Arnold", "Elevação Lateral", "Remada Alta", "Pullover"]
                 elif dia == 2:  # Costas
-                    ex_principais = EXERCICIOS['Remada'][:2] + EXERCICIOS['Terra'][:1] + ["Pullover"]
+                    ex_principais = ["Remada Curvada", "Remada Nórdica", "Pullover"]
                 elif dia == 3:  # Peito (menos ênfase)
-                    ex_principais = EXERCICIOS['Supino'][:2] + ["Crucifixo Inclinado"]
+                    ex_principais = ["Supino Reto", "Crucifixo Inclinado"]
                 elif dia == 4:  # Pernas (manutenção)
-                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Acessórios'][:2]
+                    ex_principais = ["Agachamento Livre (barra alta)", "Stiff"]
                 else:  # Braços + Abdômen
-                    ex_principais = EXERCICIOS['Braços'] + ["Abdominal"]
+                    ex_principais = ["Rosca Direta", "Tríceps Testa", "Abdominal"]
 
             elif modalidade == "Bikini":
                 if dia == 1:  # Glúteos e posteriores
                     ex_principais = ["Agachamento Búlgaro", "Stiff Unilateral", "Ponte Pélvica com Barra", "Abdutora com Elástico"]
                 elif dia == 2:  # Quadríceps e panturrilhas
-                    ex_principais = EXERCICIOS['Agachamento'][:2] + ["Cadeira Extensora", "Panturrilha em Pé"]
+                    ex_principais = ["Agachamento Livre (barra alta)", "Cadeira Extensora", "Panturrilha em Pé"]
                 elif dia == 3:  # Superiores (manutenção)
-                    ex_principais = EXERCICIOS['Supino'][:2] + EXERCICIOS['Remada'][:2]
+                    ex_principais = ["Supino Reto", "Remada Curvada"]
                 elif dia == 4:  # Glúteos e isquiotibiais novamente
                     ex_principais = ["Glúteo no Cabo", "Mesa Flexora", "Afundo", "Ponte Pélvica com Barra"]
-                else:  # Cardio ou alongamento
+                else:
                     ex_principais = ["Alongamento Ativo", "Mobilidade de Quadril"]
 
             elif modalidade == "Musculação Convencional":
                 if dia == 1:
-                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Supino'][:2] + ["Desenvolvimento Arnold"]
+                    ex_principais = ["Agachamento Livre (barra alta)", "Supino Reto", "Desenvolvimento Arnold"]
                 elif dia == 2:
-                    ex_principais = EXERCICIOS['Terra'][:2] + EXERCICIOS['Remada'][:2] + ["Rosca Martelo"]
+                    ex_principais = ["Levantamento Terra Tradicional", "Remada Curvada", "Rosca Martelo"]
                 else:
-                    ex_principais = EXERCICIOS['Acessórios'][:2] + EXERCICIOS['Braços'] + ["Cadeira Extensora", "Mesa Flexora", "Abdominal"]
+                    ex_principais = ["Stiff", "Tríceps Testa", "Cadeira Extensora", "Mesa Flexora", "Abdominal"]
 
-            else:  # Demais modalidades
+            else:  # Geral / Beach Tennis / Futebol / Gestante / Criança etc.
                 if dia == 1:
-                    ex_principais = EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'][:2]
+                    ex_principais = list(EXERCICIOS['Agachamento'][:2]) + list(EXERCICIOS['Supino'][:2])
                 elif dia == 2:
-                    ex_principais = EXERCICIOS['Terra'] + EXERCICIOS['Desenvolvimento']
+                    ex_principais = list(EXERCICIOS['Terra'][:2]) + list(EXERCICIOS['Desenvolvimento'][:2])
                 else:
-                    ex_principais = EXERCICIOS['Remada'] + EXERCICIOS['Acessórios']
+                    ex_principais = list(EXERCICIOS['Remada'][:2]) + list(EXERCICIOS['Acessórios'][:2])
 
                 if ex_extra and dia <= 2:
-                    ex_principais = list(ex_principais) + ex_extra
+                    ex_principais += ex_extra
 
                 if dia == freq:
-                    ex_principais = ex_principais + EXERCICIOS['Braços']
+                    ex_principais += list(EXERCICIOS['Braços'])
                 else:
-                    ex_principais = ex_principais + EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
+                    ex_principais += list(EXERCICIOS['Torre Única'][:2]) + list(EXERCICIOS['Barra Fixa / Paralela'][:2])
 
-            # Adiciona corretivos no primeiro dia de cada semana
+            # Adiciona corretivos no primeiro dia da semana
             if dia == 1 and corretivos:
-                ex_principais = list(ex_principais) + corretivos
+                ex_principais += corretivos
 
             for ex in ex_principais[:6]:
-                if any(m in ex.lower() for m in ["agachamento", "agachamento pausado", "bulgaro", "salto", "sprint", "agachamento sumô"]):
+                # Determinação da carga base (resumido)
+                ex_lower = ex.lower()
+                if "agachamento" in ex_lower or "búlgaro" in ex_lower or "salto" in ex_lower or "sprint" in ex_lower:
                     carga_base = agach
-                elif any(m in ex.lower() for m in ["supino", "board press", "supino fechado", "crucifixo", "inclinado"]):
+                elif "supino" in ex_lower or "board" in ex_lower or "crucifixo" in ex_lower or "inclinado" in ex_lower:
                     carga_base = sup
-                elif any(m in ex.lower() for m in ["terra", "sumô", "déficit", "deficit", "lockout", "stiff", "good morning"]):
+                elif "terra" in ex_lower or "sumô" in ex_lower or "déficit" in ex_lower or "deficit" in ex_lower or "lockout" in ex_lower or "stiff" in ex_lower or "good morning" in ex_lower:
                     carga_base = terra
-                elif "rosca" in ex.lower() or "tríceps" in ex.lower() or "testa" in ex.lower():
+                elif "rosca" in ex_lower or "tríceps" in ex_lower or "testa" in ex_lower:
                     carga_base = agach * 0.3
-                elif "puxada alta" in ex.lower() or "pulley" in ex.lower():
+                elif "puxada" in ex_lower or "pulley" in ex_lower:
                     carga_base = sup * 0.5
-                elif "remada" in ex.lower():
+                elif "remada" in ex_lower:
                     carga_base = sup * 0.7
-                elif "elevação lateral" in ex.lower() or "desenvolvimento" in ex.lower() or "arnold" in ex.lower() or "militar" in ex.lower():
+                elif "elevação" in ex_lower or "desenvolvimento" in ex_lower or "arnold" in ex_lower or "militar" in ex_lower:
                     carga_base = sup * 0.4
-                elif "cadeira extensora" in ex.lower() or "mesa flexora" in ex.lower() or "panturrilha" in ex.lower():
+                elif "cadeira" in ex_lower or "mesa" in ex_lower or "panturrilha" in ex_lower:
                     carga_base = agach * 0.4
-                elif "alongamento" in ex.lower() or "abdominal" in ex.lower() or "mobilidade" in ex.lower():
-                    carga_base = 0
-                elif "glúteo" in ex.lower() or "abdutora" in ex.lower() or "ponte" in ex.lower():
+                elif "glúteo" in ex_lower or "abdutora" in ex_lower or "ponte" in ex_lower:
                     carga_base = agach * 0.3
-                elif "pullover" in ex.lower():
-                    carga_base = sup * 0.5
-                elif "fortalecimento" in ex.lower() or "massagem" in ex.lower() or "intrínseco" in ex.lower():
+                elif "abdominal" in ex_lower or "alongamento" in ex_lower or "mobilidade" in ex_lower or "fortalecimento" in ex_lower or "massagem" in ex_lower:
                     carga_base = 0
                 else:
                     carga_base = agach * 0.5
@@ -454,6 +444,21 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 })
 
     df = pd.DataFrame(planilha)
+
+    # Adiciona nome do ciclo (onda)
+    def nome_ciclo(s):
+        onda = (s - 1) % 4
+        if onda == 0:
+            return "Volume"
+        elif onda == 1:
+            return "Transição"
+        elif onda == 2:
+            return "Força"
+        else:
+            return "Recuperação"
+
+    df['Ciclo'] = df['Semana'].apply(nome_ciclo)
+    df = df[['Semana', 'Ciclo', 'Dia', 'Exercício', 'Séries', 'Repetições', '% 1RM', 'Carga (kg)']]
     return df
 
 def get_table_download_link(df):
@@ -589,7 +594,6 @@ elif menu == "Avaliação & Fotos":
                 if img:
                     img_pil = Image.open(img)
                     img_pil.save(f"fotos/{cliente_selecionado}_{data_foto}_{tipo}.png")
-            # Redirecionar para checklist postural após upload
             st.success("Fotos salvas! Agora preencha a avaliação postural abaixo.")
             st.session_state.mostrar_postural = True
 
@@ -639,7 +643,6 @@ elif menu == "Geração de Treino":
         cliente = carregar_cliente(id_cliente)
         if cliente is not None:
             st.write(f"**{cliente['nome']}** | Sexo: {cliente.get('sexo','Masculino')} | Objetivo: {cliente['objetivo']} | Modalidade: {cliente.get('modalidade', 'Geral')} | Nível: {cliente['nivel']}")
-            # Verificar se há avaliação postural
             postural = carregar_ultima_postural(id_cliente)
             if postural is not None:
                 st.info(f"📌 Última avaliação postural: {postural['data']} – O treino incluirá corretivos.")
@@ -650,7 +653,10 @@ elif menu == "Geração de Treino":
             freq = st.radio("Dias por semana (sugestão automática será usada se diferente)", [3, 4, 5])
             if st.button("Gerar Treino"):
                 df = gerar_planilha(cliente, semanas=semanas, frequencia=freq)
-                st.dataframe(df)
+                # Exibição por semanas
+                for semana in sorted(df['Semana'].unique()):
+                    with st.expander(f"🗓️ Semana {semana} – {df[df['Semana']==semana]['Ciclo'].iloc[0]}"):
+                        st.dataframe(df[df['Semana']==semana].drop(columns=['Semana','Ciclo']), use_container_width=True)
                 st.markdown(get_table_download_link(df), unsafe_allow_html=True)
 
 elif menu == "Histórico & Evolução":
@@ -722,4 +728,4 @@ elif menu == "Personalizar Exercícios":
                     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("© 2026 Ailson Personal Trainer")
+st.sidebar.markdown("© 2025 Ailson Personal Trainer")
