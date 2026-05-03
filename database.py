@@ -1,6 +1,6 @@
-# database.py
 import sqlite3
-from config import DB_NAME
+from config import DB_NAME, UPLOAD_DIR, ADMIN_USUARIO, ADMIN_SENHA_HASH
+import os
 
 def get_connection():
     return sqlite3.connect(DB_NAME, check_same_thread=False)
@@ -17,7 +17,18 @@ def execute_query(query, params=(), fetch=False, fetchone=False):
         conn.commit()
 
 def init_db():
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    
     queries = [
+        # Tabela de usuários (substitui login fixo)
+        '''CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            senha_hash TEXT NOT NULL,
+            nome TEXT,
+            ativo INTEGER DEFAULT 1
+        )''',
+        # Clientes com soft delete
         '''CREATE TABLE IF NOT EXISTS clientes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
@@ -32,8 +43,21 @@ def init_db():
             terra_1rm REAL,
             pegada_direita REAL,
             pegada_esquerda REAL,
-            historico TEXT
+            historico TEXT,
+            ativo INTEGER DEFAULT 1
         )''',
+        # Pagamentos
+        '''CREATE TABLE IF NOT EXISTS pagamentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id INTEGER,
+            data TEXT,
+            valor REAL,
+            status TEXT,
+            forma TEXT,
+            observacao TEXT,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id)
+        )''',
+        # Avaliações físicas
         '''CREATE TABLE IF NOT EXISTS avaliacao_fisica (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cliente_id INTEGER,
@@ -62,6 +86,7 @@ def init_db():
             observacoes TEXT,
             FOREIGN KEY (cliente_id) REFERENCES clientes (id)
         )''',
+        # Avaliação postural
         '''CREATE TABLE IF NOT EXISTS avaliacao_postural (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cliente_id INTEGER,
@@ -79,16 +104,23 @@ def init_db():
             observacoes TEXT,
             FOREIGN KEY (cliente_id) REFERENCES clientes (id)
         )''',
+        # Fotos (agora salva em disco, path no banco)
         '''CREATE TABLE IF NOT EXISTS fotos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cliente_id INTEGER,
             data TEXT,
             tipo TEXT,
-            foto BLOB,
+            foto_path TEXT,
             FOREIGN KEY (cliente_id) REFERENCES clientes (id)
-        )'''
+        )''',
     ]
     for q in queries:
         execute_query(q)
+    
+    # Cria usuário admin se não existir
+    admin_existe = execute_query("SELECT id FROM usuarios WHERE username = ?", (ADMIN_USUARIO,), fetchone=True)
+    if not admin_existe:
+        execute_query("INSERT INTO usuarios (username, senha_hash, nome) VALUES (?, ?, ?)",
+                      (ADMIN_USUARIO, ADMIN_SENHA_HASH, "Administrador"))
 
 init_db()
