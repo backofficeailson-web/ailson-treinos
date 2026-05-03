@@ -170,7 +170,7 @@ def carregar_historico_treinos(cliente_id):
     return df
 
 # -----------------------------
-# EXERCÍCIOS PADRÃO (agora customizável)
+# EXERCÍCIOS PADRÃO (customizável)
 # -----------------------------
 if 'EXERCICIOS' not in st.session_state:
     st.session_state.EXERCICIOS = {
@@ -189,7 +189,7 @@ if 'EXERCICIOS' not in st.session_state:
 EXERCICIOS = st.session_state.EXERCICIOS
 
 # -----------------------------
-# GERADOR DE PLANILHA ONDULATÓRIA (com modalidades)
+# GERADOR DE PLANILHA ONDULATÓRIA (com todas as modalidades)
 # -----------------------------
 def gerar_planilha(cliente, semanas=4, frequencia=3):
     objetivo = cliente['objetivo']
@@ -211,31 +211,59 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     elif modalidade == "Criança/Adolescente":
         ex_extra = ["Agachamento com Bastão", "Supino com Halteres Leves", "Barra Fixa Assistida"]
         freq = 2
-    else:
+    elif modalidade == "Powerlifting":
+        ex_extra = ["Agachamento Pausado", "Supino Fechado", "Board Press", "Terra Sumô", "Terra Déficit", "Lockout Terra"]
+        freq = 4  # Frequência semanal típica de powerlifting (dias de agacho, supino, terra, e auxiliar)
+    elif modalidade == "Fisiculturismo":
+        ex_extra = ["Elevação Lateral", "Crucifixo Inclinado", "Rosca Scott", "Tríceps Francês", "Cadeira Extensora", "Mesa Flexora", "Panturrilha em Pé"]
+        freq = 6  # Típico split 6x por semana
+    elif modalidade == "Musculação Convencional":
+        ex_extra = ["Supino Inclinado com Halteres", "Remada Cavalinho", "Desenvolvimento Arnold", "Rosca Martelo", "Tríceps Testa", "Cadeira Extensora", "Mesa Flexora", "Abdominal"]
+        freq = max(frequencia, 3)
+    else:  # Geral
         ex_extra = []
         freq = frequencia
 
-    if objetivo == "Hipertrofia":
+    # Esquema de séries/reps base
+    if modalidade == "Powerlifting":
+        # Repetições baixas, intensidade alta
         rep_schemes_base = [
-            {'series':3, 'reps':10, 'intensidade':0.65},
-            {'series':4, 'reps':8, 'intensidade':0.70},
-            {'series':5, 'reps':5, 'intensidade':0.78},
-            {'series':3, 'reps':12, 'intensidade':0.60}
+            {'series':5, 'reps':3, 'intensidade':0.85},
+            {'series':4, 'reps':2, 'intensidade':0.90},
+            {'series':3, 'reps':1, 'intensidade':0.95},
+            {'series':5, 'reps':2, 'intensidade':0.88}
         ]
-    elif objetivo == "Força Máxima":
+    elif modalidade == "Fisiculturismo":
+        # Alto volume, repetições moderadas
         rep_schemes_base = [
-            {'series':4, 'reps':6, 'intensidade':0.80},
-            {'series':5, 'reps':4, 'intensidade':0.85},
-            {'series':3, 'reps':3, 'intensidade':0.90},
-            {'series':5, 'reps':2, 'intensidade':0.93}
+            {'series':4, 'reps':12, 'intensidade':0.60},
+            {'series':3, 'reps':10, 'intensidade':0.65},
+            {'series':5, 'reps':8, 'intensidade':0.70},
+            {'series':3, 'reps':15, 'intensidade':0.55}
         ]
     else:
-        rep_schemes_base = [
-            {'series':6, 'reps':3, 'intensidade':0.50},
-            {'series':8, 'reps':2, 'intensidade':0.55},
-            {'series':5, 'reps':3, 'intensidade':0.60},
-            {'series':10, 'reps':1, 'intensidade':0.70}
-        ]
+        # Para as demais, usa o objetivo original
+        if objetivo == "Hipertrofia":
+            rep_schemes_base = [
+                {'series':3, 'reps':10, 'intensidade':0.65},
+                {'series':4, 'reps':8, 'intensidade':0.70},
+                {'series':5, 'reps':5, 'intensidade':0.78},
+                {'series':3, 'reps':12, 'intensidade':0.60}
+            ]
+        elif objetivo == "Força Máxima":
+            rep_schemes_base = [
+                {'series':4, 'reps':6, 'intensidade':0.80},
+                {'series':5, 'reps':4, 'intensidade':0.85},
+                {'series':3, 'reps':3, 'intensidade':0.90},
+                {'series':5, 'reps':2, 'intensidade':0.93}
+            ]
+        else:  # Potência
+            rep_schemes_base = [
+                {'series':6, 'reps':3, 'intensidade':0.50},
+                {'series':8, 'reps':2, 'intensidade':0.55},
+                {'series':5, 'reps':3, 'intensidade':0.60},
+                {'series':10, 'reps':1, 'intensidade':0.70}
+            ]
 
     planilha = []
     for semana in range(1, semanas+1):
@@ -246,37 +274,82 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         intensidade = round(scheme_base['intensidade'] * fator_progressao, 2)
 
         for dia in range(1, freq+1):
-            if dia == 1:
-                ex_principais = list(EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'])
-            elif dia == 2:
-                ex_principais = list(EXERCICIOS['Terra'] + EXERCICIOS['Desenvolvimento'])
-            else:
-                ex_principais = list(EXERCICIOS['Remada'] + EXERCICIOS['Acessórios'])
+            # Lógica de exercícios principais varia por modalidade
+            if modalidade == "Powerlifting":
+                if dia == 1:
+                    ex_principais = EXERCICIOS['Agachamento'][:2] + ["Agachamento Pausado"]
+                elif dia == 2:
+                    ex_principais = EXERCICIOS['Supino'][:2] + ["Supino Fechado", "Board Press"]
+                elif dia == 3:
+                    ex_principais = EXERCICIOS['Terra'][:2] + ["Terra Sumô", "Terra Déficit"]
+                else:
+                    ex_principais = EXERCICIOS['Braços'] + EXERCICIOS['Barra Fixa / Paralela'] + ["Lockout Terra"]
 
-            if dia == freq:
-                ex_principais += EXERCICIOS['Braços']
-            else:
-                ex_principais += EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
+            elif modalidade == "Fisiculturismo":
+                if dia == 1:  # Peito + Tríceps
+                    ex_principais = EXERCICIOS['Supino'][:2] + ["Crucifixo Inclinado", "Tríceps Francês", "Tríceps Corda (Cross)"]
+                elif dia == 2:  # Costas + Bíceps
+                    ex_principais = EXERCICIOS['Remada'][:2] + EXERCICIOS['Terra'][:1] + ["Rosca Direta", "Rosca Scott"]
+                elif dia == 3:  # Pernas
+                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Acessórios'][:2] + ["Cadeira Extensora", "Mesa Flexora", "Panturrilha em Pé"]
+                elif dia == 4:  # Ombros + Abdômen
+                    ex_principais = EXERCICIOS['Desenvolvimento'][:2] + ["Elevação Lateral"] + ["Abdominal"]
+                elif dia == 5:  # Pernas (ênfase posterior)
+                    ex_principais = ["Stiff", "Good Morning"] + EXERCICIOS['Terra'][:1] + ["Mesa Flexora"]
+                else:  # Braços ou descanso ativo
+                    ex_principais = EXERCICIOS['Braços'] + ["Rosca Scott", "Tríceps Francês"]
 
-            # Adiciona exercícios extras da modalidade
-            if ex_extra and dia <= 2:
-                ex_principais += ex_extra
+            elif modalidade == "Musculação Convencional":
+                if dia == 1:  # Agachamento + Supino
+                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Supino'][:2] + ["Desenvolvimento Arnold"]
+                elif dia == 2:  # Terra + Remada
+                    ex_principais = EXERCICIOS['Terra'][:2] + EXERCICIOS['Remada'][:2] + ["Rosca Martelo"]
+                else:
+                    ex_principais = EXERCICIOS['Acessórios'][:2] + EXERCICIOS['Braços'] + ["Cadeira Extensora", "Mesa Flexora", "Abdominal"]
 
-            for ex in ex_principais[:5]:
-                if "Agachamento" in ex or "Salto" in ex or "Búlgaro" in ex or "Sprint" in ex:
+            else:  # Demais modalidades
+                if dia == 1:
+                    ex_principais = EXERCICIOS['Agachamento'] + EXERCICIOS['Supino'][:2]
+                elif dia == 2:
+                    ex_principais = EXERCICIOS['Terra'] + EXERCICIOS['Desenvolvimento']
+                else:
+                    ex_principais = EXERCICIOS['Remada'] + EXERCICIOS['Acessórios']
+
+                # Adiciona exercícios extras específicos da modalidade
+                if ex_extra and dia <= 2:
+                    ex_principais = list(ex_principais) + ex_extra
+
+                if dia == freq:
+                    ex_principais = ex_principais + EXERCICIOS['Braços']
+                else:
+                    ex_principais = ex_principais + EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
+
+            # Para powerlifting e fisiculturismo, já definimos listas completas
+            # Agora percorre os exercícios do dia
+            for ex in ex_principais[:6]:  # limita a 6 exercícios
+                # Determina carga base
+                if any(m in ex.lower() for m in ["agachamento", "agachamento pausado", "bulgaro", "salto", "sprint"]):
                     carga_base = agach
-                elif "Supino" in ex:
+                elif any(m in ex.lower() for m in ["supino", "board press", "supino fechado", "crucifixo", "inclinado"]):
                     carga_base = sup
-                elif "Terra" in ex:
+                elif any(m in ex.lower() for m in ["terra", "sumô", "déficit", "deficit", "lockout", "stiff", "good morning"]):
                     carga_base = terra
-                elif "Rotação" in ex or "Medicine" in ex:
-                    carga_base = agach * 0.2
-                elif "Alongamento" in ex:
+                elif "rosca" in ex.lower() or "tríceps" in ex.lower() or "testa" in ex.lower():
+                    carga_base = agach * 0.3
+                elif "puxada alta" in ex.lower() or "pulley" in ex.lower():
+                    carga_base = sup * 0.5
+                elif "remada" in ex.lower():
+                    carga_base = sup * 0.7
+                elif "elevação lateral" in ex.lower() or "desenvolvimento" in ex.lower():
+                    carga_base = sup * 0.4
+                elif "cadeira extensora" in ex.lower() or "mesa flexora" in ex.lower() or "panturrilha" in ex.lower():
+                    carga_base = agach * 0.4
+                elif "alongamento" in ex.lower() or "abdominal" in ex.lower():
                     carga_base = 0
                 else:
                     carga_base = agach * 0.5
 
-                carga = round(carga_base * intensidade, 2)
+                carga = round(carga_base * intensidade, 2) if carga_base > 0 else 0
                 planilha.append({
                     'Semana': semana,
                     'Dia': dia,
@@ -330,7 +403,10 @@ if menu == "Cadastro de Cliente":
             "Beach Tennis",
             "Futebol",
             "Criança/Adolescente",
-            "Gestante"
+            "Gestante",
+            "Powerlifting",
+            "Fisiculturismo",
+            "Musculação Convencional"
         ])
         st.subheader("Testes de Força (1RM ou Estimado)")
         agach = st.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
@@ -366,8 +442,10 @@ elif menu == "Editar / Excluir Clientes":
                 objetivo = st.selectbox("Objetivo principal", ["Hipertrofia", "Força Máxima", "Potência"],
                                         index=["Hipertrofia", "Força Máxima", "Potência"].index(cliente['objetivo']))
                 modalidade = st.selectbox("Modalidade esportiva", [
-                    "Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante"
-                ], index=["Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante"].index(cliente.get('modalidade', 'Geral')))
+                    "Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
+                    "Powerlifting", "Fisiculturismo", "Musculação Convencional"
+                ], index=["Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
+                          "Powerlifting", "Fisiculturismo", "Musculação Convencional"].index(cliente.get('modalidade', 'Geral')))
                 agach = st.number_input("Agachamento (kg)", 0.0, 500.0, cliente['agachamento_1rm'])
                 sup = st.number_input("Supino (kg)", 0.0, 500.0, cliente['supino_1rm'])
                 terra = st.number_input("Terra (kg)", 0.0, 500.0, cliente['terra_1rm'])
