@@ -526,7 +526,7 @@ elif menu == "Geração de Treino":
         if cliente is not None:
             st.write(f"**{cliente['nome']}** | Objetivo: {cliente['objetivo']} | Modalidade: {cliente['modalidade']}")
             semanas = st.slider("Semanas", 4, 12, 12, step=4)
-            freq = st.radio("Frequência semanal", [2, 3, 4])
+            freq = st.radio("Frequência semanal", [2, 3, 4, 5])
             if st.button("Gerar Planilha"):
                 # Mantém a função de treino antiga ou exporta no formato Alexandre com logo
                 # Placeholder: gerar um DataFrame simples
