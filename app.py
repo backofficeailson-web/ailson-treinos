@@ -722,4 +722,4 @@ elif menu == "Personalizar Exercícios":
                     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("© 2025 Ailson Personal Trainer")
+st.sidebar.markdown("© 2026 Ailson Personal Trainer")
