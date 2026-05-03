@@ -67,6 +67,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY,
                     nome TEXT,
+                    sexo TEXT DEFAULT "Masculino",
                     idade INTEGER,
                     nivel TEXT,
                     objetivo TEXT,
@@ -86,6 +87,17 @@ def init_db():
                     foto_costas BLOB,
                     foto_perfil BLOB
                 )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS avaliacao_postural (
+                    id INTEGER PRIMARY KEY,
+                    cliente_id INTEGER,
+                    data TEXT,
+                    cabeca TEXT DEFAULT "Normal",
+                    ombros TEXT DEFAULT "Normal",
+                    coluna TEXT DEFAULT "Normal",
+                    quadril TEXT DEFAULT "Normal",
+                    joelhos TEXT DEFAULT "Normal",
+                    pes TEXT DEFAULT "Normal"
+                )''')
     c.execute('''CREATE TABLE IF NOT EXISTS treinos_realizados (
                     id INTEGER PRIMARY KEY,
                     cliente_id INTEGER,
@@ -104,19 +116,19 @@ init_db()
 # -----------------------------
 # FUNÇÕES AUXILIARES
 # -----------------------------
-def salvar_cliente(nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq):
+def salvar_cliente(nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq):
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
-    c.execute("INSERT INTO clientes (nome,idade,nivel,objetivo,modalidade,agachamento_1rm,supino_1rm,terra_1rm,pegada_direita,pegada_esquerda) VALUES (?,?,?,?,?,?,?,?,?,?)",
-              (nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq))
+    c.execute("INSERT INTO clientes (nome,sexo,idade,nivel,objetivo,modalidade,agachamento_1rm,supino_1rm,terra_1rm,pegada_direita,pegada_esquerda) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+              (nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq))
     conn.commit()
     conn.close()
 
-def atualizar_cliente(id_cliente, nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq):
+def atualizar_cliente(id_cliente, nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq):
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
-    c.execute("UPDATE clientes SET nome=?, idade=?, nivel=?, objetivo=?, modalidade=?, agachamento_1rm=?, supino_1rm=?, terra_1rm=?, pegada_direita=?, pegada_esquerda=? WHERE id=?",
-              (nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq, id_cliente))
+    c.execute("UPDATE clientes SET nome=?, sexo=?, idade=?, nivel=?, objetivo=?, modalidade=?, agachamento_1rm=?, supino_1rm=?, terra_1rm=?, pegada_direita=?, pegada_esquerda=? WHERE id=?",
+              (nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq, id_cliente))
     conn.commit()
     conn.close()
 
@@ -125,13 +137,14 @@ def excluir_cliente(id_cliente):
     c = conn.cursor()
     c.execute("DELETE FROM clientes WHERE id=?", (id_cliente,))
     c.execute("DELETE FROM fotos WHERE cliente_id=?", (id_cliente,))
+    c.execute("DELETE FROM avaliacao_postural WHERE cliente_id=?", (id_cliente,))
     c.execute("DELETE FROM treinos_realizados WHERE cliente_id=?", (id_cliente,))
     conn.commit()
     conn.close()
 
 def carregar_clientes():
     conn = sqlite3.connect('clientes.db')
-    df = pd.read_sql("SELECT id, nome, nivel, objetivo, modalidade FROM clientes", conn)
+    df = pd.read_sql("SELECT id, nome, nivel, objetivo, modalidade, sexo FROM clientes", conn)
     conn.close()
     return df
 
@@ -154,6 +167,20 @@ def carregar_fotos(cliente_id):
     df = pd.read_sql(f"SELECT * FROM fotos WHERE cliente_id={cliente_id} ORDER BY data DESC", conn)
     conn.close()
     return df
+
+def salvar_avaliacao_postural(cliente_id, data, cabeca, ombros, coluna, quadril, joelhos, pes):
+    conn = sqlite3.connect('clientes.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO avaliacao_postural (cliente_id, data, cabeca, ombros, coluna, quadril, joelhos, pes) VALUES (?,?,?,?,?,?,?)",
+              (cliente_id, data, cabeca, ombros, coluna, quadril, joelhos, pes))
+    conn.commit()
+    conn.close()
+
+def carregar_ultima_postural(cliente_id):
+    conn = sqlite3.connect('clientes.db')
+    df = pd.read_sql(f"SELECT * FROM avaliacao_postural WHERE cliente_id={cliente_id} ORDER BY data DESC LIMIT 1", conn)
+    conn.close()
+    return df.iloc[0] if not df.empty else None
 
 def salvar_treino(cliente_id, data, exercicio, series, reps, carga, obs=""):
     conn = sqlite3.connect('clientes.db')
@@ -189,7 +216,7 @@ if 'EXERCICIOS' not in st.session_state:
 EXERCICIOS = st.session_state.EXERCICIOS
 
 # -----------------------------
-# GERADOR DE PLANILHA ONDULATÓRIA (com todas as modalidades)
+# GERADOR DE PLANILHA ONDULATÓRIA (com todas as modalidades e postural)
 # -----------------------------
 def gerar_planilha(cliente, semanas=4, frequencia=3):
     objetivo = cliente['objetivo']
@@ -197,6 +224,39 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
     agach = cliente['agachamento_1rm']
     sup = cliente['supino_1rm']
     terra = cliente['terra_1rm']
+    sexo = cliente.get('sexo', 'Masculino')
+
+    # Carregar última avaliação postural
+    postural = carregar_ultima_postural(cliente['id'])
+    desvios = {
+        'cabeca': postural['cabeca'] if postural is not None else 'Normal',
+        'ombros': postural['ombros'] if postural is not None else 'Normal',
+        'coluna': postural['coluna'] if postural is not None else 'Normal',
+        'quadril': postural['quadril'] if postural is not None else 'Normal',
+        'joelhos': postural['joelhos'] if postural is not None else 'Normal',
+        'pes': postural['pes'] if postural is not None else 'Normal'
+    }
+
+    # Exercícios corretivos baseados nos desvios
+    corretivos = []
+    if desvios['cabeca'] != 'Normal':
+        corretivos.append("Alongamento de esternocleidomastóideo")
+        corretivos.append("Fortalecimento de flexores profundos do pescoço")
+    if desvios['ombros'] != 'Normal':
+        corretivos.append("Fortalecimento de romboides (remada baixa)")
+        corretivos.append("Alongamento de peitoral menor")
+    if desvios['coluna'] != 'Normal':
+        corretivos.append("Mobilidade torácica (extensão sobre rolo)")
+        corretivos.append("Fortalecimento de eretores espinhais")
+    if desvios['quadril'] != 'Normal':
+        corretivos.append("Alongamento de flexores do quadril")
+        corretivos.append("Fortalecimento de glúteo médio")
+    if desvios['joelhos'] != 'Normal':
+        corretivos.append("Fortalecimento de vasto medial (agachamento sumô)")
+        corretivos.append("Alongamento de isquiotibiais")
+    if desvios['pes'] != 'Normal':
+        corretivos.append("Fortalecimento intrínseco do pé (toalha)")
+        corretivos.append("Massagem plantar")
 
     # Ajustes por modalidade
     if modalidade == "Beach Tennis":
@@ -213,28 +273,32 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         freq = 2
     elif modalidade == "Powerlifting":
         ex_extra = ["Agachamento Pausado", "Supino Fechado", "Board Press", "Terra Sumô", "Terra Déficit", "Lockout Terra"]
-        freq = 4  # Frequência semanal típica de powerlifting (dias de agacho, supino, terra, e auxiliar)
+        freq = 4
     elif modalidade == "Fisiculturismo":
         ex_extra = ["Elevação Lateral", "Crucifixo Inclinado", "Rosca Scott", "Tríceps Francês", "Cadeira Extensora", "Mesa Flexora", "Panturrilha em Pé"]
-        freq = 6  # Típico split 6x por semana
+        freq = 6
     elif modalidade == "Musculação Convencional":
         ex_extra = ["Supino Inclinado com Halteres", "Remada Cavalinho", "Desenvolvimento Arnold", "Rosca Martelo", "Tríceps Testa", "Cadeira Extensora", "Mesa Flexora", "Abdominal"]
         freq = max(frequencia, 3)
+    elif modalidade == "V-Taper":
+        ex_extra = ["Desenvolvimento Arnold", "Elevação Lateral", "Remada Alta", "Pullover", "Crucifixo Inverso"]
+        freq = 5  # Ênfase em ombros e costas
+    elif modalidade == "Bikini":
+        ex_extra = ["Glúteo no Cabo", "Abdutora com Elástico", "Stiff Unilateral", "Agachamento Búlgaro", "Ponte Pélvica com Barra"]
+        freq = 5  # Ênfase em glúteos e pernas
     else:  # Geral
         ex_extra = []
         freq = frequencia
 
     # Esquema de séries/reps base
     if modalidade == "Powerlifting":
-        # Repetições baixas, intensidade alta
         rep_schemes_base = [
             {'series':5, 'reps':3, 'intensidade':0.85},
             {'series':4, 'reps':2, 'intensidade':0.90},
             {'series':3, 'reps':1, 'intensidade':0.95},
             {'series':5, 'reps':2, 'intensidade':0.88}
         ]
-    elif modalidade == "Fisiculturismo":
-        # Alto volume, repetições moderadas
+    elif modalidade == "Fisiculturismo" or modalidade in ["V-Taper", "Bikini"]:
         rep_schemes_base = [
             {'series':4, 'reps':12, 'intensidade':0.60},
             {'series':3, 'reps':10, 'intensidade':0.65},
@@ -242,7 +306,6 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
             {'series':3, 'reps':15, 'intensidade':0.55}
         ]
     else:
-        # Para as demais, usa o objetivo original
         if objetivo == "Hipertrofia":
             rep_schemes_base = [
                 {'series':3, 'reps':10, 'intensidade':0.65},
@@ -274,7 +337,7 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
         intensidade = round(scheme_base['intensidade'] * fator_progressao, 2)
 
         for dia in range(1, freq+1):
-            # Lógica de exercícios principais varia por modalidade
+            # Exercícios principais por modalidade
             if modalidade == "Powerlifting":
                 if dia == 1:
                     ex_principais = EXERCICIOS['Agachamento'][:2] + ["Agachamento Pausado"]
@@ -299,10 +362,34 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 else:  # Braços ou descanso ativo
                     ex_principais = EXERCICIOS['Braços'] + ["Rosca Scott", "Tríceps Francês"]
 
+            elif modalidade == "V-Taper":
+                if dia == 1:  # Ombros
+                    ex_principais = EXERCICIOS['Desenvolvimento'][:2] + ["Elevação Lateral", "Remada Alta"]
+                elif dia == 2:  # Costas
+                    ex_principais = EXERCICIOS['Remada'][:2] + EXERCICIOS['Terra'][:1] + ["Pullover"]
+                elif dia == 3:  # Peito (menos ênfase)
+                    ex_principais = EXERCICIOS['Supino'][:2] + ["Crucifixo Inclinado"]
+                elif dia == 4:  # Pernas (manutenção)
+                    ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Acessórios'][:2]
+                else:  # Braços + Abdômen
+                    ex_principais = EXERCICIOS['Braços'] + ["Abdominal"]
+
+            elif modalidade == "Bikini":
+                if dia == 1:  # Glúteos e posteriores
+                    ex_principais = ["Agachamento Búlgaro", "Stiff Unilateral", "Ponte Pélvica com Barra", "Abdutora com Elástico"]
+                elif dia == 2:  # Quadríceps e panturrilhas
+                    ex_principais = EXERCICIOS['Agachamento'][:2] + ["Cadeira Extensora", "Panturrilha em Pé"]
+                elif dia == 3:  # Superiores (manutenção)
+                    ex_principais = EXERCICIOS['Supino'][:2] + EXERCICIOS['Remada'][:2]
+                elif dia == 4:  # Glúteos e isquiotibiais novamente
+                    ex_principais = ["Glúteo no Cabo", "Mesa Flexora", "Afundo", "Ponte Pélvica com Barra"]
+                else:  # Cardio ou alongamento
+                    ex_principais = ["Alongamento Ativo", "Mobilidade de Quadril"]
+
             elif modalidade == "Musculação Convencional":
-                if dia == 1:  # Agachamento + Supino
+                if dia == 1:
                     ex_principais = EXERCICIOS['Agachamento'][:2] + EXERCICIOS['Supino'][:2] + ["Desenvolvimento Arnold"]
-                elif dia == 2:  # Terra + Remada
+                elif dia == 2:
                     ex_principais = EXERCICIOS['Terra'][:2] + EXERCICIOS['Remada'][:2] + ["Rosca Martelo"]
                 else:
                     ex_principais = EXERCICIOS['Acessórios'][:2] + EXERCICIOS['Braços'] + ["Cadeira Extensora", "Mesa Flexora", "Abdominal"]
@@ -315,7 +402,6 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 else:
                     ex_principais = EXERCICIOS['Remada'] + EXERCICIOS['Acessórios']
 
-                # Adiciona exercícios extras específicos da modalidade
                 if ex_extra and dia <= 2:
                     ex_principais = list(ex_principais) + ex_extra
 
@@ -324,11 +410,12 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                 else:
                     ex_principais = ex_principais + EXERCICIOS['Torre Única'] + EXERCICIOS['Barra Fixa / Paralela']
 
-            # Para powerlifting e fisiculturismo, já definimos listas completas
-            # Agora percorre os exercícios do dia
-            for ex in ex_principais[:6]:  # limita a 6 exercícios
-                # Determina carga base
-                if any(m in ex.lower() for m in ["agachamento", "agachamento pausado", "bulgaro", "salto", "sprint"]):
+            # Adiciona corretivos no primeiro dia de cada semana
+            if dia == 1 and corretivos:
+                ex_principais = list(ex_principais) + corretivos
+
+            for ex in ex_principais[:6]:
+                if any(m in ex.lower() for m in ["agachamento", "agachamento pausado", "bulgaro", "salto", "sprint", "agachamento sumô"]):
                     carga_base = agach
                 elif any(m in ex.lower() for m in ["supino", "board press", "supino fechado", "crucifixo", "inclinado"]):
                     carga_base = sup
@@ -340,11 +427,17 @@ def gerar_planilha(cliente, semanas=4, frequencia=3):
                     carga_base = sup * 0.5
                 elif "remada" in ex.lower():
                     carga_base = sup * 0.7
-                elif "elevação lateral" in ex.lower() or "desenvolvimento" in ex.lower():
+                elif "elevação lateral" in ex.lower() or "desenvolvimento" in ex.lower() or "arnold" in ex.lower() or "militar" in ex.lower():
                     carga_base = sup * 0.4
                 elif "cadeira extensora" in ex.lower() or "mesa flexora" in ex.lower() or "panturrilha" in ex.lower():
                     carga_base = agach * 0.4
-                elif "alongamento" in ex.lower() or "abdominal" in ex.lower():
+                elif "alongamento" in ex.lower() or "abdominal" in ex.lower() or "mobilidade" in ex.lower():
+                    carga_base = 0
+                elif "glúteo" in ex.lower() or "abdutora" in ex.lower() or "ponte" in ex.lower():
+                    carga_base = agach * 0.3
+                elif "pullover" in ex.lower():
+                    carga_base = sup * 0.5
+                elif "fortalecimento" in ex.lower() or "massagem" in ex.lower() or "intrínseco" in ex.lower():
                     carga_base = 0
                 else:
                     carga_base = agach * 0.5
@@ -388,7 +481,8 @@ if menu == "Cadastro de Cliente":
     with st.form("form_cliente"):
         col1, col2 = st.columns(2)
         nome = col1.text_input("Nome completo")
-        idade = col2.number_input("Idade", 6, 100, 30)
+        sexo = col2.selectbox("Sexo", ["Masculino", "Feminino"])
+        idade = st.number_input("Idade", 6, 100, 30)
         nivel = st.selectbox("Nível de experiência", [
             "Iniciante (Nível 1)",
             "Básico (Nível 2)",
@@ -406,7 +500,9 @@ if menu == "Cadastro de Cliente":
             "Gestante",
             "Powerlifting",
             "Fisiculturismo",
-            "Musculação Convencional"
+            "Musculação Convencional",
+            "V-Taper",
+            "Bikini"
         ])
         st.subheader("Testes de Força (1RM ou Estimado)")
         agach = st.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
@@ -416,7 +512,7 @@ if menu == "Cadastro de Cliente":
         peg_esq = st.number_input("Força de Pegada Mão Esquerda (kg)", 0.0, 200.0, 38.0)
         submitted = st.form_submit_button("Salvar Cliente")
         if submitted:
-            salvar_cliente(nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq)
+            salvar_cliente(nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq)
             st.success(f"Cliente {nome} cadastrado com sucesso!")
 
 elif menu == "Editar / Excluir Clientes":
@@ -433,19 +529,31 @@ elif menu == "Editar / Excluir Clientes":
         with tab1:
             with st.form("editar_cliente"):
                 nome = st.text_input("Nome completo", cliente['nome'])
+                sexo = st.selectbox("Sexo", ["Masculino", "Feminino"], index=0 if cliente.get('sexo','Masculino')=='Masculino' else 1)
                 idade = st.number_input("Idade", 6, 100, cliente['idade'])
-                nivel = st.selectbox("Nível de experiência", [
-                    "Iniciante (Nível 1)", "Básico (Nível 2)", "Intermediário (Nível 3)",
-                    "Avançado (Nível 4)", "Elite (Nível 5)", "Competitivo (Nível 6)"
-                ], index=["Iniciante (Nível 1)", "Básico (Nível 2)", "Intermediário (Nível 3)",
-                          "Avançado (Nível 4)", "Elite (Nível 5)", "Competitivo (Nível 6)"].index(cliente['nivel']))
-                objetivo = st.selectbox("Objetivo principal", ["Hipertrofia", "Força Máxima", "Potência"],
-                                        index=["Hipertrofia", "Força Máxima", "Potência"].index(cliente['objetivo']))
-                modalidade = st.selectbox("Modalidade esportiva", [
-                    "Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
-                    "Powerlifting", "Fisiculturismo", "Musculação Convencional"
-                ], index=["Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
-                          "Powerlifting", "Fisiculturismo", "Musculação Convencional"].index(cliente.get('modalidade', 'Geral')))
+                nivel_atual = cliente['nivel']
+                niveis_lista = ["Iniciante (Nível 1)", "Básico (Nível 2)", "Intermediário (Nível 3)",
+                                "Avançado (Nível 4)", "Elite (Nível 5)", "Competitivo (Nível 6)"]
+                try:
+                    idx_nivel = niveis_lista.index(nivel_atual)
+                except:
+                    idx_nivel = 0
+                nivel = st.selectbox("Nível de experiência", niveis_lista, index=idx_nivel)
+                objetivo_atual = cliente['objetivo']
+                obj_lista = ["Hipertrofia", "Força Máxima", "Potência"]
+                try:
+                    idx_obj = obj_lista.index(objetivo_atual)
+                except:
+                    idx_obj = 0
+                objetivo = st.selectbox("Objetivo principal", obj_lista, index=idx_obj)
+                modalidade_atual = cliente.get('modalidade', 'Geral')
+                mod_lista = ["Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
+                             "Powerlifting", "Fisiculturismo", "Musculação Convencional", "V-Taper", "Bikini"]
+                try:
+                    idx_mod = mod_lista.index(modalidade_atual)
+                except:
+                    idx_mod = 0
+                modalidade = st.selectbox("Modalidade esportiva", mod_lista, index=idx_mod)
                 agach = st.number_input("Agachamento (kg)", 0.0, 500.0, cliente['agachamento_1rm'])
                 sup = st.number_input("Supino (kg)", 0.0, 500.0, cliente['supino_1rm'])
                 terra = st.number_input("Terra (kg)", 0.0, 500.0, cliente['terra_1rm'])
@@ -453,7 +561,7 @@ elif menu == "Editar / Excluir Clientes":
                 peg_esq = st.number_input("Força de Pegada Mão Esquerda (kg)", 0.0, 200.0, cliente['pegada_esquerda'])
                 atualizar = st.form_submit_button("Atualizar Cliente")
                 if atualizar:
-                    atualizar_cliente(id_cliente, nome, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq)
+                    atualizar_cliente(id_cliente, nome, sexo, idade, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq)
                     st.success(f"Cliente {nome} atualizado com sucesso!")
         with tab2:
             if st.button("Excluir Cliente Permanentemente", type="primary"):
@@ -462,7 +570,7 @@ elif menu == "Editar / Excluir Clientes":
                 st.rerun()
 
 elif menu == "Avaliação & Fotos":
-    st.header("📸 Fotos Avaliativas")
+    st.header("📸 Fotos Avaliativas e Análise Postural")
     clientes_df = carregar_clientes()
     if clientes_df.empty:
         st.warning("Nenhum cliente cadastrado.")
@@ -481,7 +589,26 @@ elif menu == "Avaliação & Fotos":
                 if img:
                     img_pil = Image.open(img)
                     img_pil.save(f"fotos/{cliente_selecionado}_{data_foto}_{tipo}.png")
-            st.success("Fotos salvas com sucesso!")
+            # Redirecionar para checklist postural após upload
+            st.success("Fotos salvas! Agora preencha a avaliação postural abaixo.")
+            st.session_state.mostrar_postural = True
+
+        if st.session_state.get('mostrar_postural', False):
+            st.subheader("🔍 Avaliação Postural")
+            with st.form("form_postural"):
+                st.write("Marque os desvios observados em cada segmento:")
+                cabeca = st.selectbox("Cabeça", ["Normal", "Anteriorizada", "Inclinada D", "Inclinada E"])
+                ombros = st.selectbox("Ombros", ["Normal", "Protrusos", "Elevado D", "Elevado E", "Desnivelados", "Escápula Alada D", "Escápula Alada E"])
+                coluna = st.selectbox("Coluna", ["Normal", "Cifose", "Hiperlordose", "Escoliose"])
+                quadril = st.selectbox("Quadril", ["Normal", "Anteroversão", "Retroversão", "Inclinação D", "Inclinação E"])
+                joelhos = st.selectbox("Joelhos", ["Normal", "Valgo D", "Valgo E", "Varo D", "Varo E", "Recurvado"])
+                pes = st.selectbox("Pés", ["Normal", "Pronado", "Supinado", "Cavo", "Plano"])
+                salvar_avaliacao = st.form_submit_button("Salvar Avaliação")
+                if salvar_avaliacao:
+                    salvar_avaliacao_postural(id_cliente, data_foto.strftime("%Y-%m-%d"), cabeca, ombros, coluna, quadril, joelhos, pes)
+                    st.success("Avaliação postural registrada!")
+                    st.session_state.mostrar_postural = False
+                    st.rerun()
 
         # Comparação de fotos
         st.subheader("📊 Comparação de Fotos")
@@ -502,7 +629,7 @@ elif menu == "Avaliação & Fotos":
                             col.image(img2, caption=f"{data2} - {tipo}", use_column_width=True)
 
 elif menu == "Geração de Treino":
-    st.header("📋 Gerar Planilha Ondulatória")
+    st.header("📋 Gerar Planilha Ondulatória Personalizada")
     clientes_df = carregar_clientes()
     if clientes_df.empty:
         st.warning("Cadastre um cliente primeiro.")
@@ -511,9 +638,16 @@ elif menu == "Geração de Treino":
         id_cliente = clientes_df[clientes_df['nome'] == cliente_nome]['id'].values[0]
         cliente = carregar_cliente(id_cliente)
         if cliente is not None:
-            st.write(f"**Objetivo:** {cliente['objetivo']} | **Modalidade:** {cliente.get('modalidade', 'Geral')} | **Nível:** {cliente['nivel']}")
+            st.write(f"**{cliente['nome']}** | Sexo: {cliente.get('sexo','Masculino')} | Objetivo: {cliente['objetivo']} | Modalidade: {cliente.get('modalidade', 'Geral')} | Nível: {cliente['nivel']}")
+            # Verificar se há avaliação postural
+            postural = carregar_ultima_postural(id_cliente)
+            if postural is not None:
+                st.info(f"📌 Última avaliação postural: {postural['data']} – O treino incluirá corretivos.")
+            else:
+                st.warning("Nenhuma avaliação postural registrada. O treino será gerado sem corretivos.")
+
             semanas = st.slider("Semanas de treino", 4, 12, 4, step=4)
-            freq = st.radio("Dias por semana", [3, 4, 5])
+            freq = st.radio("Dias por semana (sugestão automática será usada se diferente)", [3, 4, 5])
             if st.button("Gerar Treino"):
                 df = gerar_planilha(cliente, semanas=semanas, frequencia=freq)
                 st.dataframe(df)
@@ -529,13 +663,11 @@ elif menu == "Histórico & Evolução":
         id_cliente = int(clientes_df[clientes_df['nome']==nome]['id'].values[0])
         cliente = carregar_cliente(id_cliente)
 
-        # Métricas atuais
         col1, col2, col3 = st.columns(3)
         col1.metric("Agachamento 1RM", f"{cliente['agachamento_1rm']} kg")
         col2.metric("Supino 1RM", f"{cliente['supino_1rm']} kg")
         col3.metric("Terra 1RM", f"{cliente['terra_1rm']} kg")
 
-        # Registrar treino realizado
         st.subheader("✍️ Registrar Treino Realizado")
         with st.form("registrar_treino"):
             data = st.date_input("Data", datetime.now())
@@ -548,7 +680,6 @@ elif menu == "Histórico & Evolução":
                 salvar_treino(id_cliente, data.strftime("%Y-%m-%d"), exercicio, series, reps, carga, obs)
                 st.success("Treino registrado!")
 
-        # Gráfico de evolução
         st.subheader("📊 Evolução de Cargas")
         historico = carregar_historico_treinos(id_cliente)
         if not historico.empty:
@@ -565,7 +696,7 @@ elif menu == "Histórico & Evolução":
                 fig.patch.set_facecolor(PRETO)
                 st.pyplot(fig)
         else:
-            st.info("Nenhum treino registrado ainda. Registre alguns para ver os gráficos.")
+            st.info("Nenhum treino registrado ainda.")
 
 elif menu == "Personalizar Exercícios":
     st.header("🔧 Personalizar Banco de Exercícios")
