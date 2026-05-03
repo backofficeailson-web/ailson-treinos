@@ -89,3 +89,4 @@ def pagina_avaliacao_fisica():
                 with st.expander(f"{av['data']} - {av['peso']}kg"):
                     st.write(f"Cintura: {av['cintura']}cm | Abdômen: {av['abdomen']}cm | Quadril: {av['quadril']}cm")
                     st.write(f"Tríceps: {av['triceps']}mm | Peitoral: {av['peitoral']}mm | Abdominal: {av['abdominal']}mm | Coxa: {av['coxa']}mm")
+                    
