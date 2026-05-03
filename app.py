@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
+import re
 from datetime import datetime
 from PIL import Image
 import io
@@ -68,7 +69,6 @@ else:
 def init_db():
     conn = sqlite3.connect('clientes.db')
     c = conn.cursor()
-    # Adiciona colunas para dados nutricionais se não existirem
     c.execute('''CREATE TABLE IF NOT EXISTS clientes (
                     id INTEGER PRIMARY KEY,
                     nome TEXT,
@@ -116,7 +116,6 @@ def init_db():
                     carga REAL,
                     observacoes TEXT
                 )''')
-    # Tabela de alimentos (banco de dados nutricional)
     c.execute('''CREATE TABLE IF NOT EXISTS alimentos (
                     id INTEGER PRIMARY KEY,
                     nome TEXT,
@@ -126,7 +125,6 @@ def init_db():
                     gorduras REAL,
                     porcao REAL
                 )''')
-    # Insere alimentos padrão se a tabela estiver vazia
     c.execute("SELECT COUNT(*) FROM alimentos")
     if c.fetchone()[0] == 0:
         alimentos_padrao = [
@@ -162,7 +160,7 @@ def init_db():
 init_db()
 
 # -----------------------------
-# FUNÇÕES AUXILIARES (mantidas da versão anterior)
+# FUNÇÕES AUXILIARES
 # -----------------------------
 def salvar_cliente(nome, sexo, idade, peso, altura, perc_gord, nivel, objetivo, modalidade, agach, sup, terra, peg_dir, peg_esq):
     conn = sqlite3.connect('clientes.db')
@@ -264,7 +262,6 @@ def calcular_get(tmb, fator_atividade):
     return tmb * fatores.get(fator_atividade, 1.55)
 
 def distribuir_macros(peso, objetivo, modalidade, get, sexo):
-    # Proteína (g/kg)
     if objetivo == "Hipertrofia" and modalidade in ["Powerlifting", "Fisiculturismo"]:
         proteina_gkg = 2.2
     elif modalidade in ["Beach Tennis", "Futebol"]:
@@ -274,12 +271,11 @@ def distribuir_macros(peso, objetivo, modalidade, get, sexo):
     elif objetivo == "Emagrecimento":
         proteina_gkg = 2.0
     else:
-        proteina_gkg = 1.8  # default para hipertrofia geral
+        proteina_gkg = 1.8
 
     proteina_g = peso * proteina_gkg
     calorias_proteina = proteina_g * 4
 
-    # Gordura
     if objetivo == "Emagrecimento":
         perc_gord = 0.2
     elif modalidade == "Gestante":
@@ -289,20 +285,17 @@ def distribuir_macros(peso, objetivo, modalidade, get, sexo):
     calorias_gordura = get * perc_gord
     gordura_g = calorias_gordura / 9
 
-    # Carboidrato
     calorias_carb = get - calorias_proteina - calorias_gordura
     carboidrato_g = calorias_carb / 4
 
     return round(proteina_g, 1), round(gordura_g, 1), round(carboidrato_g, 1), round(get)
 
 def montar_refeicoes(meta_calorias, meta_prot, meta_carb, meta_gord, num_refeicoes=5):
-    """ Distribui as metas e seleciona alimentos do banco para cada refeição """
     conn = sqlite3.connect('clientes.db')
     alimentos_df = pd.read_sql("SELECT * FROM alimentos", conn)
     conn.close()
 
-    # Distribuição percentual por refeição
-    distribuicao = [0.20, 0.10, 0.30, 0.15, 0.25]  # café, lanche, almoço, lanche, jantar
+    distribuicao = [0.20, 0.10, 0.30, 0.15, 0.25]
     refeicoes = []
     for i, perc in enumerate(distribuicao):
         cal = meta_calorias * perc
@@ -310,36 +303,20 @@ def montar_refeicoes(meta_calorias, meta_prot, meta_carb, meta_gord, num_refeico
         carb = meta_carb * perc
         gord = meta_gord * perc
 
-        # Heurística: selecionar alimentos que se aproximem desses macros
-        # Simplificação: prato básico (arroz, feijão, carne, salada) ajustado
         sugestoes = []
-        if i == 0:  # café da manhã
-            sugestoes.append(("Leite integral", 200))
-            sugestoes.append(("Pão integral", 50))
-            sugestoes.append(("Mamão papaia", 150))
-        elif i == 1:  # lanche manhã
-            sugestoes.append(("Iogurte natural", 200))
-            sugestoes.append(("Banana prata", 100))
-        elif i == 2:  # almoço
-            sugestoes.append(("Arroz integral cozido", 150))
-            sugestoes.append(("Feijão carioca cozido", 100))
-            sugestoes.append(("Frango grelhado (peito)", 150))
-            sugestoes.append(("Brócolis cozido", 100))
-        elif i == 3:  # lanche tarde
-            sugestoes.append(("Aveia em flocos", 30))
-            sugestoes.append(("Banana prata", 100))
-        else:  # jantar
-            sugestoes.append(("Arroz integral cozido", 100))
-            sugestoes.append(("Bife de alcatra grelhado", 120))
-            sugestoes.append(("Batata doce cozida", 100))
-            sugestoes.append(("Tomate", 50))
+        if i == 0:
+            sugestoes = [("Leite integral", 200), ("Pão integral", 50), ("Mamão papaia", 150)]
+        elif i == 1:
+            sugestoes = [("Iogurte natural", 200), ("Banana prata", 100)]
+        elif i == 2:
+            sugestoes = [("Arroz integral cozido", 150), ("Feijão carioca cozido", 100), ("Frango grelhado (peito)", 150), ("Brócolis cozido", 100)]
+        elif i == 3:
+            sugestoes = [("Aveia em flocos", 30), ("Banana prata", 100)]
+        else:
+            sugestoes = [("Arroz integral cozido", 100), ("Bife de alcatra grelhado", 120), ("Batata doce cozida", 100), ("Tomate", 50)]
 
-        # Calcular macros da sugestão
-        total_cal = 0
-        total_prot = 0
-        total_carb = 0
-        total_gord = 0
         itens = []
+        total_cal = total_prot = total_carb = total_gord = 0
         for nome, gramas in sugestoes:
             alimento = alimentos_df[alimentos_df['nome'] == nome].iloc[0]
             fator = gramas / 100
@@ -368,12 +345,10 @@ def exportar_plano_alimentar(cliente, refeicoes, metas):
     ws = wb.active
     ws.title = "Plano Alimentar"
 
-    # Inserir logomarca
     if os.path.exists(LOGO_PATH):
         img = XlImage(LOGO_PATH)
         ws.add_image(img, 'A1')
 
-    # Título
     ws.merge_cells('B2:H2')
     ws['B2'] = "PLANO ALIMENTAR INDIVIDUALIZADO"
     ws['B2'].font = Font(size=14, bold=True)
@@ -398,7 +373,6 @@ def exportar_plano_alimentar(cliente, refeicoes, metas):
             ws.cell(row, 6, item[4])
             ws.cell(row, 7, item[5])
             row += 1
-        # totais da refeição
         ws.cell(row, 2, "Total").font = Font(bold=True)
         ws.cell(row, 4, ref['total_cal'])
         ws.cell(row, 5, ref['total_prot'])
@@ -410,6 +384,173 @@ def exportar_plano_alimentar(cliente, refeicoes, metas):
     wb.save(output)
     output.seek(0)
     return output
+
+# -----------------------------
+# GERADOR DE PLANILHA ONDULATÓRIA (5 DIAS)
+# -----------------------------
+def gerar_planilha(cliente, semanas=12, frequencia=3):
+    import re
+    agach = cliente['agachamento_1rm']
+    sup   = cliente['supino_1rm']
+    terra = cliente['terra_1rm']
+    nivel = cliente['nivel'].split("(")[0].strip()
+    objetivo = cliente['objetivo']
+
+    if "Iniciante" in nivel:
+        if frequencia == 2:
+            rep_schemes = [
+                [("4-6 RMs","12-15 RMs")],
+                [("8-10 RMs","4-6 RMs")],
+                [("12-15 RMs","8-10 RMs")],
+                [("4-6 RMs","12-15 RMs")],
+                [("8-10 RMs","4-6 RMs")],
+                [("12-15 RMs","8-10 RMs")],
+                [("4-6 RMs","12-15 RMs")],
+                [("8-10 RMs","4-6 RMs")],
+                [("12-15 RMs","8-10 RMs")],
+                [("4-6 RMs","12-15 RMs")],
+                [("8-10 RMs","4-6 RMs")],
+                [("12-15 RMs","8-10 RMs")]
+            ]
+        elif frequencia == 3:
+            rep_schemes = [[("4-6 RMs","12-15 RMs","8-10 RMs")]] * 12
+        elif frequencia == 4:
+            rep_schemes = [[("12-15 RMs","8-10 RMs","12-15 RMs","8-10 RMs")]] * 12
+        else:  # 5 dias
+            rep_schemes = [[("4-6 RMs","12-15 RMs","8-10 RMs","4-6 RMs","12-15 RMs")]] * 12
+    elif "Intermediário" in nivel:
+        if frequencia == 2:
+            rep_schemes = [
+                [("12-15 RMs","18-20 RMs")],
+                [("22-25 RMs","12-15 RMs")],
+                [("18-20 RMs","22-25 RMs")],
+                [("12-15 RMs","18-20 RMs")],
+                [("22-25 RMs","12-15 RMs")],
+                [("18-20 RMs","22-25 RMs")],
+                [("12-15 RMs","18-20 RMs")],
+                [("22-25 RMs","12-15 RMs")],
+                [("18-20 RMs","22-25 RMs")],
+                [("12-15 RMs","18-20 RMs")],
+                [("22-25 RMs","12-15 RMs")],
+                [("18-20 RMs","22-25 RMs")]
+            ]
+        elif frequencia == 3:
+            rep_schemes = [[("12-15 RMs","18-20 RMs","22-25 RMs")]] * 12
+        elif frequencia == 4:
+            rep_schemes = [[("12-15 RMs","18-20 RMs","22-25 RMs","12-15 RMs")]] * 12
+        else:
+            rep_schemes = [[("12-15 RMs","18-20 RMs","22-25 RMs","12-15 RMs","18-20 RMs")]] * 12
+    else:  # Avançado / Elite / Competitivo
+        if frequencia == 2:
+            rep_schemes = [
+                [("TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10")],
+                [("TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10")],
+                [("TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10")]
+            ]
+        elif frequencia == 3:
+            rep_schemes = [[("TA 12-15","TB 8-10","TA 12-15")]] * 12
+        elif frequencia == 4:
+            rep_schemes = [
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10")]
+            ]
+        else:
+            rep_schemes = [
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10","TA 4-6")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10","TA 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10","TA 4-6")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10","TA 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")],
+                [("TA 4-6","TB 8-10","TA 4-6","TB 8-10","TA 4-6")],
+                [("TA 8-10","TB 8-10","TA 8-10","TB 8-10","TA 8-10")],
+                [("TA 12-15","TB 8-10","TA 12-15","TB 8-10","TA 12-15")]
+            ]
+
+    def exercicios_dia(numero_dia, nivel, modalidade):
+        if "Avançado" in nivel or "Elite" in nivel or "Compet" in nivel:
+            if numero_dia % 2 == 1:  # TA
+                return ["Rosca Biceps", "Rosca Martelo", "Triceps MonoCross", "Triceps Francês", "Desenvolvimento Ombro", "Elevação Lateral"]
+            else:
+                return ["Agacho Taça", "Push Up", "Remada Curvada", "Agacho Sumo", "Supino Reto", "TRX"]
+        else:
+            dia1 = ["Agachamento Livre (barra alta)", "Supino Reto", "Remada Curvada"]
+            dia2 = ["Levantamento Terra Tradicional", "Desenvolvimento Militar", "Stiff"]
+            dia3 = ["Rosca Direta", "Tríceps Testa", "Puxada Alta", "Dips (Paralela)"]
+            dia4 = ["Box Squat", "Supino Fechado", "Remada Nórdica"]
+            dia5 = ["Good Morning", "Desenvolvimento com Halteres", "Avanço com Barra"]
+            if numero_dia == 1: return dia1
+            elif numero_dia == 2: return dia2
+            elif numero_dia == 3: return dia3
+            elif numero_dia == 4: return dia4
+            else: return dia5
+
+    dados = []
+    for semana in range(1, semanas+1):
+        esquema = rep_schemes[semana-1][0]
+        for dia in range(1, frequencia+1):
+            faixa_rm = esquema[dia-1]
+            numeros = re.findall(r'\d+', faixa_rm)
+            if len(numeros) >= 2:
+                rep_min, rep_max = int(numeros[0]), int(numeros[1])
+            else:
+                rep_min = rep_max = 10
+            series = 3 if "Iniciante" in nivel else 4
+            exs = exercicios_dia(dia, nivel, cliente.get('modalidade', 'Geral'))
+            for ex in exs[:4]:
+                ex_lower = ex.lower()
+                if "agachamento" in ex_lower or "box squat" in ex_lower or "agacho" in ex_lower:
+                    carga = round(agach * (1 - 0.025*rep_max), 1)
+                elif "supino" in ex_lower or "push" in ex_lower:
+                    carga = round(sup * (1 - 0.025*rep_max), 1)
+                elif "terra" in ex_lower or "stiff" in ex_lower or "good morning" in ex_lower:
+                    carga = round(terra * (1 - 0.025*rep_max), 1)
+                elif "remada" in ex_lower:
+                    carga = round(sup * 0.8 * (1 - 0.025*rep_max), 1)
+                elif "desenvolvimento" in ex_lower or "militar" in ex_lower:
+                    carga = round(sup * 0.7 * (1 - 0.025*rep_max), 1)
+                elif "rosca" in ex_lower or "triceps" in ex_lower or "testa" in ex_lower:
+                    carga = round(agach * 0.25 * (1 - 0.025*rep_max), 1)
+                elif "puxada" in ex_lower or "dips" in ex_lower or "trx" in ex_lower:
+                    carga = 20.0
+                else:
+                    carga = 50.0
+                volume = series * rep_max * carga
+                dados.append([semana, f"Semana {semana}", f"Dia {dia}", ex, series, rep_max, carga, volume])
+
+    df = pd.DataFrame(dados, columns=["Semana", "Microciclo", "Dia", "Exercício", "Séries", "Repetições", "Carga (kg)", "Volume Load"])
+    return df
+
+def get_table_download_link(df, nome_cliente):
+    towrite = io.BytesIO()
+    with pd.ExcelWriter(towrite, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name="Treino")
+    towrite.seek(0)
+    b64 = base64.b64encode(towrite.read()).decode()
+    href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="treino_{nome_cliente}_{datetime.now().strftime("%Y%m%d")}.xlsx">📥 Baixar Planilha Excel</a>'
+    return href
 
 # -----------------------------
 # INTERFACE STREAMLIT
@@ -444,16 +585,8 @@ if menu == "Cadastro de Cliente":
         ])
         objetivo = st.selectbox("Objetivo principal", ["Hipertrofia", "Força Máxima", "Potência", "Emagrecimento"])
         modalidade = st.selectbox("Modalidade esportiva", [
-            "Geral",
-            "Beach Tennis",
-            "Futebol",
-            "Criança/Adolescente",
-            "Gestante",
-            "Powerlifting",
-            "Fisiculturismo",
-            "Musculação Convencional",
-            "V-Taper",
-            "Bikini"
+            "Geral", "Beach Tennis", "Futebol", "Criança/Adolescente", "Gestante",
+            "Powerlifting", "Fisiculturismo", "Musculação Convencional", "V-Taper", "Bikini"
         ])
         st.subheader("Testes de Força (1RM ou Estimado)")
         agach = st.number_input("Agachamento (kg)", 0.0, 500.0, 80.0)
@@ -511,8 +644,59 @@ elif menu == "Editar / Excluir Clientes":
                 st.rerun()
 
 elif menu == "Avaliação & Fotos":
-    # (código mantido da versão anterior, sem alterações)
-    pass
+    st.header("📸 Fotos Avaliativas e Análise Postural")
+    clientes_df = carregar_clientes()
+    if clientes_df.empty:
+        st.warning("Nenhum cliente cadastrado.")
+    else:
+        cliente_selecionado = st.selectbox("Selecione o cliente", clientes_df['nome'])
+        id_cliente = clientes_df[clientes_df['nome'] == cliente_selecionado]['id'].values[0]
+        data_foto = st.date_input("Data da foto", datetime.now())
+        col1, col2, col3 = st.columns(3)
+        frente = col1.file_uploader("Frente", type=['jpg','jpeg','png'])
+        costas = col2.file_uploader("Costas", type=['jpg','jpeg','png'])
+        perfil = col3.file_uploader("Perfil", type=['jpg','jpeg','png'])
+        if st.button("Salvar Fotos"):
+            if not os.path.exists("fotos"):
+                os.makedirs("fotos")
+            for img, tipo in [(frente, "frente"), (costas, "costas"), (perfil, "perfil")]:
+                if img:
+                    img_pil = Image.open(img)
+                    img_pil.save(f"fotos/{cliente_selecionado}_{data_foto}_{tipo}.png")
+            st.success("Fotos salvas! Preencha a avaliação postural abaixo.")
+            st.session_state.mostrar_postural = True
+
+        if st.session_state.get('mostrar_postural', False):
+            st.subheader("🔍 Avaliação Postural")
+            with st.form("form_postural"):
+                cabeca = st.selectbox("Cabeça", ["Normal", "Anteriorizada", "Inclinada D", "Inclinada E"])
+                ombros = st.selectbox("Ombros", ["Normal", "Protrusos", "Elevado D", "Elevado E", "Desnivelados", "Escápula Alada D", "Escápula Alada E"])
+                coluna = st.selectbox("Coluna", ["Normal", "Cifose", "Hiperlordose", "Escoliose"])
+                quadril = st.selectbox("Quadril", ["Normal", "Anteroversão", "Retroversão", "Inclinação D", "Inclinação E"])
+                joelhos = st.selectbox("Joelhos", ["Normal", "Valgo D", "Valgo E", "Varo D", "Varo E", "Recurvado"])
+                pes = st.selectbox("Pés", ["Normal", "Pronado", "Supinado", "Cavo", "Plano"])
+                if st.form_submit_button("Salvar Avaliação"):
+                    salvar_avaliacao_postural(id_cliente, data_foto.strftime("%Y-%m-%d"), cabeca, ombros, coluna, quadril, joelhos, pes)
+                    st.success("Avaliação postural registrada!")
+                    st.session_state.mostrar_postural = False
+                    st.rerun()
+
+        st.subheader("📊 Comparação de Fotos")
+        fotos_df = carregar_fotos(id_cliente)
+        if not fotos_df.empty:
+            datas = fotos_df['data'].unique()
+            if len(datas) >= 2:
+                data1 = st.selectbox("Data 1", datas, key="data1")
+                data2 = st.selectbox("Data 2", [d for d in datas if d != data1], key="data2")
+                if data1 and data2:
+                    c1, c2, c3 = st.columns(3)
+                    for col, tipo in [(c1, 'frente'), (c2, 'costas'), (c3, 'perfil')]:
+                        img1 = fotos_df[(fotos_df['data']==data1)][f'foto_{tipo}'].iloc[0] if not fotos_df[(fotos_df['data']==data1)].empty else None
+                        img2 = fotos_df[(fotos_df['data']==data2)][f'foto_{tipo}'].iloc[0] if not fotos_df[(fotos_df['data']==data2)].empty else None
+                        if img1:
+                            col.image(img1, caption=f"{data1} - {tipo}", use_column_width=True)
+                        if img2:
+                            col.image(img2, caption=f"{data2} - {tipo}", use_column_width=True)
 
 elif menu == "Geração de Treino":
     st.header("📋 Planilha de Periodização Ondulatória")
@@ -526,27 +710,11 @@ elif menu == "Geração de Treino":
         if cliente is not None:
             st.write(f"**{cliente['nome']}** | Objetivo: {cliente['objetivo']} | Modalidade: {cliente['modalidade']}")
             semanas = st.slider("Semanas", 4, 12, 12, step=4)
-            freq = st.radio("Frequência semanal", [2, 3, 4, 5])
+            freq = st.radio("Dias por semana", [2, 3, 4, 5])
             if st.button("Gerar Planilha"):
-                # Mantém a função de treino antiga ou exporta no formato Alexandre com logo
-                # Placeholder: gerar um DataFrame simples
-                df = pd.DataFrame({"Semana": [1,2], "Dia": ["Seg","Qua"], "Exercício": ["Agachamento","Supino"], "Séries": [3,3], "Repetições": [10,10], "%1RM":[70,70], "Carga":[80,60]})
+                df = gerar_planilha(cliente, semanas=semanas, frequencia=freq)
                 st.dataframe(df)
-                # Exporta com logo
-                wb = Workbook()
-                ws = wb.active
-                if os.path.exists(LOGO_PATH):
-                    img = XlImage(LOGO_PATH)
-                    ws.add_image(img, 'A1')
-                ws.merge_cells('B2:F2')
-                ws['B2'] = "PLANILHA DE TREINO"
-                ws.append(["Semana", "Dia", "Exercício", "Séries", "Repetições", "Carga"])
-                for _, row in df.iterrows():
-                    ws.append([row['Semana'], row['Dia'], row['Exercício'], row['Séries'], row['Repetições'], row['Carga']])
-                output = io.BytesIO()
-                wb.save(output)
-                output.seek(0)
-                st.download_button("Baixar Treino", output, f"treino_{cliente_nome}.xlsx")
+                st.markdown(get_table_download_link(df, cliente_nome), unsafe_allow_html=True)
 
 elif menu == "Plano Alimentar":
     st.header("🍽️ Plano Alimentar Personalizado")
@@ -594,17 +762,67 @@ elif menu == "Plano Alimentar":
                             st.write(f"- {item[0]} ({item[1]}g): {item[2]} kcal, P:{item[3]}g, C:{item[4]}g, G:{item[5]}g")
                         st.write(f"**Total da refeição:** {ref['total_cal']} kcal, P:{ref['total_prot']}g, C:{ref['total_carb']}g, G:{ref['total_gord']}g")
 
-                # Exportar
                 output = exportar_plano_alimentar(cliente, refeicoes, metas)
                 st.download_button("Baixar Plano em Excel", output, f"dieta_{cliente_nome}.xlsx")
 
 elif menu == "Histórico & Evolução":
-    # (código mantido, sem alterações)
-    pass
+    st.header("📈 Histórico do Cliente")
+    clientes_df = carregar_clientes()
+    if clientes_df.empty:
+        st.warning("Nenhum cliente cadastrado.")
+    else:
+        nome = st.selectbox("Cliente", clientes_df['nome'])
+        id_cliente = int(clientes_df[clientes_df['nome']==nome]['id'].values[0])
+        cliente = carregar_cliente(id_cliente)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Agachamento 1RM", f"{cliente['agachamento_1rm']} kg")
+        col2.metric("Supino 1RM", f"{cliente['supino_1rm']} kg")
+        col3.metric("Terra 1RM", f"{cliente['terra_1rm']} kg")
+        st.subheader("✍️ Registrar Treino Realizado")
+        with st.form("registrar_treino"):
+            data = st.date_input("Data", datetime.now())
+            exercicio = st.text_input("Exercício")
+            series = st.number_input("Séries", 1, 20, 3)
+            reps = st.number_input("Repetições", 1, 50, 10)
+            carga = st.number_input("Carga (kg)", 0.0, 500.0, 60.0)
+            obs = st.text_area("Observações")
+            if st.form_submit_button("Registrar"):
+                salvar_treino(id_cliente, data.strftime("%Y-%m-%d"), exercicio, series, reps, carga, obs)
+                st.success("Treino registrado!")
+        st.subheader("📊 Evolução de Cargas")
+        historico = carregar_historico_treinos(id_cliente)
+        if not historico.empty:
+            exercicio_filtro = st.selectbox("Exercício", historico['exercicio'].unique())
+            df_filtrado = historico[historico['exercicio'] == exercicio_filtro]
+            if not df_filtrado.empty:
+                fig, ax = plt.subplots()
+                ax.plot(pd.to_datetime(df_filtrado['data']), df_filtrado['carga'], marker='o', color=AZUL)
+                ax.set_title(f"Progresso - {exercicio_filtro}", color=BRANCO)
+                ax.set_xlabel("Data", color=BRANCO)
+                ax.set_ylabel("Carga (kg)", color=BRANCO)
+                ax.tick_params(colors=BRANCO)
+                ax.set_facecolor(PRETO)
+                fig.patch.set_facecolor(PRETO)
+                st.pyplot(fig)
 
 elif menu == "Personalizar Exercícios":
-    # (código mantido)
-    pass
+    st.header("🔧 Personalizar Banco de Exercícios")
+    with st.form("add_exercicio"):
+        categoria = st.selectbox("Categoria", ["Agachamento", "Supino", "Terra", "Desenvolvimento", "Remada", "Acessórios", "Braços", "Torre Única", "Barra Fixa / Paralela", "Pegada"])
+        novo_ex = st.text_input("Nome do novo exercício")
+        if st.form_submit_button("Adicionar") and novo_ex:
+            st.session_state.EXERCICIOS[categoria].append(novo_ex)
+            st.success(f"Exercício '{novo_ex}' adicionado à categoria '{categoria}'.")
+            st.rerun()
+    st.subheader("Exercícios atuais")
+    for cat, exs in st.session_state.EXERCICIOS.items():
+        with st.expander(f"{cat} ({len(exs)} exercícios)"):
+            for ex in exs:
+                col1, col2 = st.columns([4,1])
+                col1.write(ex)
+                if col2.button("🗑️", key=f"del_{cat}_{ex}"):
+                    st.session_state.EXERCICIOS[cat].remove(ex)
+                    st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("© 2018 Ailson Personal Trainer")
