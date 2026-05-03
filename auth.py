@@ -1,13 +1,21 @@
-# auth.py
 import hashlib
 import streamlit as st
-from config import USUARIO_VALIDO, SENHA_HASH
-
-def hash_senha(senha):
-    return hashlib.sha256(senha.encode()).hexdigest()
+from database import execute_query
+from datetime import datetime, timedelta
 
 def autenticar(usuario, senha):
-    return usuario == USUARIO_VALIDO and hash_senha(senha) == SENHA_HASH
+    usuario_data = execute_query(
+        "SELECT id, senha_hash FROM usuarios WHERE username = ? AND ativo = 1",
+        (usuario,), fetchone=True)
+    if usuario_data:
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        return usuario_data[1] == senha_hash
+    return False
+
+def logout():
+    st.session_state.logado = False
+    st.session_state.usuario = None
+    st.rerun()
 
 def tela_login():
     st.markdown("""
@@ -25,6 +33,8 @@ def tela_login():
         import os
         if os.path.exists("assets/logo.png"):
             st.image("assets/logo.png", width=250)
+        elif os.path.exists("logo.png"):
+            st.image("logo.png", width=250)
         else:
             st.markdown("<h1 style='text-align:center;color:#7CFC00;'>🟢 AILSON PERSONAL</h1>", unsafe_allow_html=True)
         st.title("AILSON PERSONAL")
@@ -33,6 +43,14 @@ def tela_login():
         if st.button("Entrar"):
             if autenticar(usuario, senha):
                 st.session_state.logado = True
+                st.session_state.usuario = usuario
+                st.session_state.ultima_atividade = datetime.now()
                 st.rerun()
             else:
                 st.error("Usuário ou senha inválidos")
+
+# Timeout de sessão (30 min)
+def verificar_timeout():
+    if "ultima_atividade" in st.session_state:
+        if datetime.now() - st.session_state.ultima_atividade > timedelta(minutes=30):
+            logout()
